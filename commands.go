@@ -86,6 +86,40 @@ func findNext(category string, session string) (event []string, err error) {
 	return
 }
 
+// The help command receives a Discord session pointer, a channel and a search string.
+// It then shows a compact help message listing all the possible commands of the bot.
+func cmdHelp(dg *discordgo.Session, channel string, search string) {
+	help := [8]string{
+		"ask <question>.",
+		"help [command] - Show help messages for each command.",
+		"next [category] - Show the next motorsport event.",
+		"omdb [movie/show] - Show info about a movie or a show.",
+		"quote [get/add] [text] - Get a random quote or add one.",
+		"wcc - Show the current World Constructor Championship standings.",
+		"wdc - Show the current World Driver Championship standings.",
+		"weather [location] - Show the current weather for a locattion.",
+	}
+	output := &discordgo.MessageEmbed{}
+	output.Title = "HELP"
+	output.Color = 0xb40000
+	if search == "" {
+		var commandList string
+		for _, v := range help {
+			commandList += prefix + strings.Split(v, " ")[0] + "\n"
+		}
+		output.Description = commandList + "\n\nUse " + prefix + "help [command] to get help for a specific command."
+		dg.ChannelMessageSendEmbed(channel, output)
+	} else {
+		for _, v := range help {
+			if strings.HasPrefix(v, strings.ToLower(search)) {
+				output.Description = prefix + v
+				dg.ChannelMessageSendEmbed(channel, output)
+				return
+			}
+		}
+	}
+}
+
 // The next command receives a Discord session pointer, a channel, a user and an optional search string.
 // It then queries the events CSV file and returns which event is happening next, showing it on the channel.
 func cmdNext(dg *discordgo.Session, channel string, user string, search string) {
