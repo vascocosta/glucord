@@ -50,7 +50,7 @@ func findNext(category string, session string) (event []string, err error) {
 				return event, err
 			}
 		case strings.ToLower(category) != "any" && strings.ToLower(session) == "any":
-			if strings.ToLower(e[0]) == strings.ToLower(category) {
+			if strings.Contains(strings.ToLower(e[0]), strings.ToLower(category)) {
 				t, err = time.Parse(timeFormat, e[3])
 				if err != nil {
 					err = errors.New("Error parsing time.")
@@ -58,7 +58,7 @@ func findNext(category string, session string) (event []string, err error) {
 				}
 			}
 		case strings.ToLower(category) == "any" && strings.ToLower(session) != "any":
-			if strings.ToLower(e[2]) == strings.ToLower(session) {
+			if strings.Contains(strings.ToLower(e[2]), strings.ToLower(session)) {
 				t, err = time.Parse(timeFormat, e[3])
 				if err != nil {
 					err = errors.New("Error parsing time.")
@@ -164,7 +164,7 @@ func cmdNext(dg *discordgo.Session, channel string, user string, search string) 
 			"formula1 sprint", "formula1 sprint race":
 			event, err = findNext("[Formula 1]", "Sprint")
 		default:
-			event, err = findNext("["+search+"]", "any")
+			event, err = findNext(search, "any")
 		}
 	} else {
 		event, err = findNext("any", "any")
