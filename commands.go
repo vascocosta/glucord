@@ -280,12 +280,33 @@ func cmdAsk(dg *discordgo.Session, channel string, args []string) {
 // It then tries to execute the given plugin name if a file with that name is found on the plugins folder.
 func cmdPlugin(name string, dg *discordgo.Session, channel string, user string, args []string) {
 	var cmd *exec.Cmd
+	embeds := false
 	output := &discordgo.MessageEmbed{}
+	users, err := readCSV(usersFile)
+	if err != nil {
+		output.Title = strings.ToUpper(name)
+		output.Description = ":warning: Error getting users."
+		output.Color = 0xb40000
+		dg.ChannelMessageSendEmbed(channel, output)
+		log.Println("cmdNext:", err)
+		return
+	}
+	for _, u := range users {
+		if strings.ToLower(u[0]) == strings.ToLower(user) {
+			if strings.Contains(strings.ToLower(u[2]),  "embeds") {
+				embeds = true
+			}
+		}
+	}
 	if !fileExists(pluginsFolder + name) {
 		output.Title = strings.ToUpper(name)
 		output.Description = ":warning: Unkown command or plugin."
 		output.Color = 0xb40000
-		dg.ChannelMessageSendEmbed(channel, output)
+		if embeds {
+			dg.ChannelMessageSendEmbed(channel, output)
+		} else {
+			dg.ChannelMessageSend(channel, output.Description)
+		}
 		return
 	}
 	if len(args) == 0 {
@@ -298,12 +319,20 @@ func cmdPlugin(name string, dg *discordgo.Session, channel string, user string, 
 		output.Title = strings.ToUpper(name)
 		output.Description = ":warning: Error executing plugin."
 		output.Color = 0xb40000
-		dg.ChannelMessageSendEmbed(channel, output)
+		if embeds {
+			dg.ChannelMessageSendEmbed(channel, output)
+		} else {
+			dg.ChannelMessageSend(channel, output.Description)
+		}
 		log.Println("cmdPlugin:", err)
 		return
 	}
 	output.Title = strings.ToUpper(name)
 	output.Description = string(cmdOutput)
 	output.Color = 0x3f82ef
-	dg.ChannelMessageSendEmbed(channel, output)
+	if embeds {
+		dg.ChannelMessageSendEmbed(channel, output)
+	} else {
+		dg.ChannelMessageSend(channel, output.Description)
+	}
 }
