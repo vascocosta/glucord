@@ -73,7 +73,7 @@ func main() {
 		fmt.Println("Cannot find movie or show.")
 		return
 	}
-	fmt.Println(fmt.Sprintf("Title: %s | Year: %s | Genre: %s | Director: %s | IMDB Rating: %s\n\n%s",
+	fmt.Println(fmt.Sprintf("**Title:** %s\n**Year:** %s\n**Genre:** %s\n**Director:** %s\n**IMDB Rating:** %s\n\n%s",
 				result.Title,
 				result.Year,
 				result.Genre,
