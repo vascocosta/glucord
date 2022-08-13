@@ -119,12 +119,12 @@ func cmdHelp(dg *discordgo.Session, channel string, user string, search string) 
 		for _, v := range help {
 			commandList += prefix + strings.Split(v, " ")[0] + "\n"
 		}
-		do := NewDiscordOutput("HELP", commandList + "\n\nUse " + prefix + "help [command] to get help for a specific command.", 0xb40000, dg, embeds)
+		do := NewDiscordOutput("HELP", commandList+"\n\nUse "+prefix+"help [command] to get help for a specific command.", 0xb40000, dg, embeds)
 		do.Send(channel)
 	} else {
 		for _, v := range help {
 			if strings.HasPrefix(v, strings.ToLower(search)) {
-				do := NewDiscordOutput("HELP", prefix + v, 0xb40000, dg, embeds)
+				do := NewDiscordOutput("HELP", prefix+v, 0xb40000, dg, embeds)
 				do.Send(channel)
 				return
 			}
