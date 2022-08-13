@@ -243,15 +243,27 @@ func cmdNext(dg *discordgo.Session, channel string, user string, search string) 
 
 // The ask command receives a Discord session pointer, a channel and an arguments slice of strings.
 // It then checks if the user has asked a question and displays a random answer on the channel.
-func cmdAsk(dg *discordgo.Session, channel string, args []string) {
+func cmdAsk(dg *discordgo.Session, channel string, user string, args []string) {
 	// Get a collection of answers stored as a CSV file.
-	output := &discordgo.MessageEmbed{}
+	embeds := false
+	users, err := readCSV(usersFile)
+	if err != nil {
+		do := NewDiscordOutput("ASK", ":warning: Error getting users.", 0xb40000, dg, embeds)
+		do.Send(channel)
+		log.Println("cmdAsk:", err)
+		return
+	}
+	for _, u := range users {
+		if strings.ToLower(u[0]) == strings.ToLower(user) {
+			if strings.Contains(strings.ToLower(u[2]), "embeds") {
+				embeds = true
+			}
+		}
+	}
 	answers, err := readCSV(answersFile)
 	if err != nil {
-		output.Title = "ASK"
-		output.Description = ":warning: Error getting answer."
-		output.Color = 0xb40000
-		dg.ChannelMessageSendEmbed(channel, output)
+		do := NewDiscordOutput("ASK", ":warning: Error getting answer.", 0xb40000, dg, embeds)
+		do.Send(channel)
 		log.Println("cmdAsk:", err)
 		return
 	}
@@ -262,17 +274,13 @@ func cmdAsk(dg *discordgo.Session, channel string, args []string) {
 	if len(args) > 0 {
 		rand.Seed(time.Now().UnixNano())
 		index := rand.Intn(len(answers))
-		output.Title = "ASK"
-		output.Description = answers[index][0]
-		output.Color = 0x3f82ef
-		dg.ChannelMessageSendEmbed(channel, output)
+		do := NewDiscordOutput("ASK", answers[index][0], 0x3f82ef, dg, embeds)
+		do.Send(channel)
 		// Otherwise, if we get here, it means the user didn't use the command correctly.
 		// Ttherefore we show a usage message on the channel.
 	} else {
-		output.Title = "ASK"
-		output.Description = ":warning: Usage: !ask <question>"
-		output.Color = 0xb40000
-		dg.ChannelMessageSendEmbed(channel, output)
+		do := NewDiscordOutput("ASK", ":warning: Usage: !ask <question>", 0xb40000, dg, embeds)
+		do.Send(channel)
 	}
 }
 
