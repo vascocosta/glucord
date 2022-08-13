@@ -18,10 +18,38 @@
 
 package main
 
+import (
+	"github.com/bwmarrin/discordgo"
+)
+
 // Type that represents a Discord command issued by the user.
 type Command struct {
 	Name    string
 	Args    []string
 	User    string
 	Channel string
+}
+
+type DiscordOutput struct {
+	Title string
+	Description string
+	Color int
+	Session *discordgo.Session
+	Embeds bool
+}
+
+func NewDiscordOutput(title string, description string, color int, s *discordgo.Session, embeds bool) *DiscordOutput {
+	return &DiscordOutput{title, description, color, s, embeds}
+}
+
+func (do *DiscordOutput) Send(channel string) {
+	if do.Embeds {
+		output := &discordgo.MessageEmbed{}
+		output.Title = do.Title
+		output.Description = do.Description
+		output.Color = do.Color
+		do.Session.ChannelMessageSendEmbed(channel, output)
+	} else {
+		do.Session.ChannelMessageSend(channel, do.Description)
+	}
 }
