@@ -88,7 +88,7 @@ func findNext(category string, session string) (event []string, err error) {
 
 // The help command receives a Discord session pointer, a channel and a search string.
 // It then shows a compact help message listing all the possible commands of the bot.
-func cmdHelp(dg *discordgo.Session, channel string, search string) {
+func cmdHelp(dg *discordgo.Session, channel string, user string, search string) {
 	help := [8]string{
 		"ask <question>.",
 		"help [command] - Show help messages for each command.",
@@ -99,21 +99,33 @@ func cmdHelp(dg *discordgo.Session, channel string, search string) {
 		"wdc - Show the current World Driver Championship standings.",
 		"weather [location] - Show the current weather for a locattion.",
 	}
-	output := &discordgo.MessageEmbed{}
-	output.Title = "HELP"
-	output.Color = 0xb40000
+	embeds := false
+	users, err := readCSV(usersFile)
+	if err != nil {
+		do := NewDiscordOutput("ASK", ":warning: Error getting users.", 0xb40000, dg, embeds)
+		do.Send(channel)
+		log.Println("cmdHelp:", err)
+		return
+	}
+	for _, u := range users {
+		if strings.ToLower(u[0]) == strings.ToLower(user) {
+			if strings.Contains(strings.ToLower(u[2]), "embeds") {
+				embeds = true
+			}
+		}
+	}
 	if search == "" {
 		var commandList string
 		for _, v := range help {
 			commandList += prefix + strings.Split(v, " ")[0] + "\n"
 		}
-		output.Description = commandList + "\n\nUse " + prefix + "help [command] to get help for a specific command."
-		dg.ChannelMessageSendEmbed(channel, output)
+		do := NewDiscordOutput("HELP", commandList + "\n\nUse " + prefix + "help [command] to get help for a specific command.", 0xb40000, dg, embeds)
+		do.Send(channel)
 	} else {
 		for _, v := range help {
 			if strings.HasPrefix(v, strings.ToLower(search)) {
-				output.Description = prefix + v
-				dg.ChannelMessageSendEmbed(channel, output)
+				do := NewDiscordOutput("HELP", prefix + v, 0xb40000, dg, embeds)
+				do.Send(channel)
 				return
 			}
 		}

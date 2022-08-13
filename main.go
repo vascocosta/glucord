@@ -59,7 +59,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		case "a", "ask":
 			cmdAsk(s, command.Channel, command.User, command.Args)
 		case "h", "help", "commands":
-			cmdHelp(s, command.Channel, strings.Join(command.Args, ""))
+			cmdHelp(s, command.Channel, command.User, strings.Join(command.Args, ""))
 		case "n", "next":
 			cmdNext(s, command.Channel, command.User, strings.Join(command.Args, " "))
 		default:
