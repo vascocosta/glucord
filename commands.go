@@ -305,7 +305,7 @@ func cmdPlugin(name string, dg *discordgo.Session, channel string, user string, 
 	if err != nil {
 		do := NewDiscordOutput(strings.ToUpper(name), ":warning: Error getting users.", 0xb40000, dg, embeds)
 		do.Send(channel)
-		log.Println("cmdNext:", err)
+		log.Println("cmdPlugin:", err)
 		return
 	}
 	for _, u := range users {
