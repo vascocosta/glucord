@@ -34,4 +34,4 @@ else:
     except ZeroDivisionError:
         print("Your fastest lap must be greater than zero seconds.")
     except Exception as e:
-        print("Unexpected Error", "Please report the message below to the developer:\n\n" + str(e).capitalize() + ".")
+        print("Unexpected error, please report the message below to the developer:\n\n" + str(e).capitalize() + ".")
