@@ -15,14 +15,21 @@ def show_usage():
     print("extra_lap - number of extra laps (paranoia)")
     print("fuel_lap - fuel consumption in litters")
 
+
+if len(sys.argv) != 3:
+    show_usage()
+    exit()
 arguments = sys.argv[2].split()
 if len(arguments) != 4:
     show_usage()
+    exit()
 else:
     try:
         fuel = calculate_fuel(float(arguments[0]), float(arguments[1]), float(arguments[2]), float(arguments[3]))
         print(f"Total fuel: {fuel}L")
     except ValueError:
+        print("Make sure you provide numbers as arguments instead of other characters.")
+        print("The race duration is in minutes, the extra laps is an integer.")
         print("The best lap is in seconds and the fuel per lap is in litters.")
     except ZeroDivisionError:
         print("Your fastest lap must be greater than zero seconds.")
