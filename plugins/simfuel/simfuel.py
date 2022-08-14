@@ -13,7 +13,7 @@ def show_usage():
     print("Usage: !simfuel <race_duration> <extra_laps> <best_lap> <fuel_lap>\n\n")
     print("race_duration - how long the race lasts in minutes")
     print("extra_lap - number of extra laps (paranoia)")
-    print("best_lap - best lap time in seconds"
+    print("best_lap - best lap time in seconds")
     print("fuel_lap - fuel consumption in litters")
 
 
