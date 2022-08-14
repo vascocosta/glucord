@@ -89,13 +89,15 @@ func findNext(category string, session string) (event []string, err error) {
 // The help command receives a Discord session pointer, a channel and a search string.
 // It then shows a compact help message listing all the possible commands of the bot.
 func cmdHelp(dg *discordgo.Session, channel string, user string, search string) {
-	help := [7]string{
-		"ask <question>.",
+	help := [9]string{
+		"ask <question> - Get a random answer for a question.",
+		"f1results <fp1|fp2|fp3|qualifying|race> - Show F1 results for the current event."
 		"f1standings <drivers|constructors|wdc|wcc> - Show the current F1 standings.",
 		"help [command] - Show help messages for each command.",
 		"next [category] - Show the next motorsport event.",
 		"omdb [movie/show] - Show info about a movie or a show.",
 		"quote [get/add] [text] - Get a random quote or add one.",
+		"simfuel <race_duration> <extra_laps> <best_lap> <fuel_lap> - Calculate sim racing fuel.",
 		"weather [location] - Show the current weather for a locattion.",
 	}
 	embeds := false
