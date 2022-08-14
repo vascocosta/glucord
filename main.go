@@ -42,6 +42,7 @@ const (
 	eventsFile    = "events.csv"  // Full path to the events file.
 	feedsFile     = "feeds.csv"   // Full path to the feeds file.
 	pluginsFolder = "./plugins/"  // Full path to the plugins folder.
+	usageFile     = "usage.csv"   // Full path to the usage file.
 	usersFile     = "users.csv"   // Full path to the users file.
 	hns           = 3600000000000 // Number of nanoseconds in one hour.
 )

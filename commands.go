@@ -89,21 +89,17 @@ func findNext(category string, session string) (event []string, err error) {
 // The help command receives a Discord session pointer, a channel and a search string.
 // It then shows a compact help message listing all the possible commands of the bot.
 func cmdHelp(dg *discordgo.Session, channel string, user string, search string) {
-	help := [9]string{
-		"ask <question> - Get a random answer for a question.",
-		"f1results <fp1|fp2|fp3|qualifying|race> - Show F1 results for the current event.",
-		"f1standings <drivers|constructors|wdc|wcc> - Show the current F1 standings.",
-		"help [command] - Show help messages for each command.",
-		"next [category] - Show the next motorsport event.",
-		"omdb [movie/show] - Show info about a movie or a show.",
-		"quote [get/add] [text] - Get a random quote or add one.",
-		"simfuel <race_duration> <extra_laps> <best_lap> <fuel_lap> - Calculate sim racing fuel.",
-		"weather [location] - Show the current weather for a locattion.",
-	}
 	embeds := false
+	usage, err := readCSV(usageFile)
+	if err != nil {
+		do := NewDiscordOutput("HELP", ":warning: Error getting usage messages.", 0xb40000, dg, embeds)
+		do.Send(channel)
+		log.Println("cmdHelp:", err)
+		return
+	}
 	users, err := readCSV(usersFile)
 	if err != nil {
-		do := NewDiscordOutput("ASK", ":warning: Error getting users.", 0xb40000, dg, embeds)
+		do := NewDiscordOutput("HELP", ":warning: Error getting users.", 0xb40000, dg, embeds)
 		do.Send(channel)
 		log.Println("cmdHelp:", err)
 		return
@@ -117,19 +113,21 @@ func cmdHelp(dg *discordgo.Session, channel string, user string, search string) 
 	}
 	if search == "" {
 		var commandList string
-		for _, v := range help {
-			commandList += prefix + strings.Split(v, " ")[0] + "\n"
+		for _, v := range usage {
+			commandList += prefix + v[0] + "\n"
 		}
 		do := NewDiscordOutput("HELP", commandList+"\n\nUse "+prefix+"help [command] to get help for a specific command.", 0xb40000, dg, embeds)
 		do.Send(channel)
 	} else {
-		for _, v := range help {
-			if strings.HasPrefix(v, strings.ToLower(search)) {
-				do := NewDiscordOutput("HELP", prefix+v, 0xb40000, dg, embeds)
+		for _, v := range usage {
+			if strings.ToLower(v[0]) == strings.ToLower(search) {
+				do := NewDiscordOutput("HELP", prefix+v[1], 0xb40000, dg, embeds)
 				do.Send(channel)
 				return
 			}
 		}
+		do := NewDiscordOutput("HELP", ":warning: Command not found.", 0xb40000, dg, embeds)
+		do.Send(channel)
 	}
 }
 
