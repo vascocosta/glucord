@@ -91,7 +91,7 @@ func findNext(category string, session string) (event []string, err error) {
 func cmdHelp(dg *discordgo.Session, channel string, user string, search string) {
 	help := [9]string{
 		"ask <question> - Get a random answer for a question.",
-		"f1results <fp1|fp2|fp3|qualifying|race> - Show F1 results for the current event."
+		"f1results <fp1|fp2|fp3|qualifying|race> - Show F1 results for the current event.",
 		"f1standings <drivers|constructors|wdc|wcc> - Show the current F1 standings.",
 		"help [command] - Show help messages for each command.",
 		"next [category] - Show the next motorsport event.",
