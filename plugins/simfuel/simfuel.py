@@ -17,16 +17,12 @@ def show_usage():
     print("fuel_lap - fuel consumption in litters")
 
 
-if len(sys.argv) != 3:
-    show_usage()
-    exit()
-arguments = sys.argv[2].split()
-if len(arguments) != 4:
+if len(sys.argv) != 6:
     show_usage()
     exit()
 else:
     try:
-        fuel = calculate_fuel(float(arguments[0]), float(arguments[1]), float(arguments[2]), float(arguments[3]))
+        fuel = calculate_fuel(float(sys.argv[2]), float(sys.argv[3]), float(sys.argv[4]), float(sys.argv[5]))
         print(f"Total fuel: {fuel}L")
     except ValueError:
         print("Make sure you provide numbers as arguments instead of other characters.")
