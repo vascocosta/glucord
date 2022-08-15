@@ -322,7 +322,10 @@ func cmdPlugin(name string, dg *discordgo.Session, channel string, user string, 
 	if len(args) == 0 {
 		cmd = exec.Command(pluginsFolder+name, user)
 	} else {
-		cmd = exec.Command(pluginsFolder+name, user, strings.Join(args, " "))
+		var fullArgs []string
+		fullArgs = append(fullArgs, user)
+		fullArgs = append(fullArgs, args...)
+		cmd = exec.Command(pluginsFolder+name, fullArgs...)
 	}
 	cmdOutput, err := cmd.CombinedOutput()
 	if err != nil {
