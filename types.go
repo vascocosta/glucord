@@ -19,6 +19,8 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/bwmarrin/discordgo"
 )
 
@@ -31,25 +33,50 @@ type Command struct {
 }
 
 type DiscordOutput struct {
-	Title string
+	Title       string
 	Description string
-	Color int
-	Session *discordgo.Session
-	Embeds bool
+	Color       int
+	Session     *discordgo.Session
+	Embeds      bool
+	Fields      *[]map[string]string
+	Image       *string
 }
 
-func NewDiscordOutput(title string, description string, color int, s *discordgo.Session, embeds bool) *DiscordOutput {
-	return &DiscordOutput{title, description, color, s, embeds}
+func NewDiscordOutput(title string, description string, color int, s *discordgo.Session, embeds bool, fields *[]map[string]string, image *string) *DiscordOutput {
+	return &DiscordOutput{title, description, color, s, embeds, fields, image}
 }
 
 func (do *DiscordOutput) Send(channel string) {
 	if do.Embeds {
 		output := &discordgo.MessageEmbed{}
 		output.Title = do.Title
-		output.Description = do.Description
+		if do.Fields == nil {
+			output.Description = do.Description
+		}
 		output.Color = do.Color
+		if do.Fields != nil {
+			for _, v := range *do.Fields {
+				field := &discordgo.MessageEmbedField{}
+				field.Name = v["Name"]
+				field.Value = v["Value"]
+				output.Fields = append(output.Fields, field)
+			}
+		}
+		if do.Image != nil {
+			embedImage := &discordgo.MessageEmbedImage{}
+			embedImage.URL = *do.Image
+			output.Image = embedImage
+		}
 		do.Session.ChannelMessageSendEmbed(channel, output)
 	} else {
+		if do.Fields != nil {
+			for _, v := range *do.Fields {
+				do.Description += fmt.Sprintf("**%s**\n%s\n", v["Name"], v["Value"])
+			}
+		}
+		if do.Image != nil {
+			do.Description += *do.Image
+		}
 		do.Session.ChannelMessageSend(channel, do.Description)
 	}
 }
