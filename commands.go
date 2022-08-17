@@ -89,17 +89,17 @@ func findNext(category string, session string) (event []string, err error) {
 // The help command receives a Discord session pointer, a channel and a search string.
 // It then shows a compact help message listing all the possible commands of the bot.
 func cmdHelp(dg *discordgo.Session, channel string, user string, search string) {
-	embeds := false
+	do := NewDiscordOutput(dg, 0xb40000, "HELP", "")
 	usage, err := readCSV(usageFile)
 	if err != nil {
-		do := NewDiscordOutput("HELP", ":warning: Error getting usage messages.", 0xb40000, dg, embeds, nil, nil)
+		do.Description = ":warning: Error getting usage messages."
 		do.Send(channel)
 		log.Println("cmdHelp:", err)
 		return
 	}
 	users, err := readCSV(usersFile)
 	if err != nil {
-		do := NewDiscordOutput("HELP", ":warning: Error getting users.", 0xb40000, dg, embeds, nil, nil)
+		do.Description = ":warning: Error getting users."
 		do.Send(channel)
 		log.Println("cmdHelp:", err)
 		return
@@ -107,7 +107,7 @@ func cmdHelp(dg *discordgo.Session, channel string, user string, search string) 
 	for _, u := range users {
 		if strings.ToLower(u[0]) == strings.ToLower(user) {
 			if strings.Contains(strings.ToLower(u[2]), "embeds") {
-				embeds = true
+				do.Embeds = true
 			}
 		}
 	}
@@ -116,17 +116,17 @@ func cmdHelp(dg *discordgo.Session, channel string, user string, search string) 
 		for _, v := range usage {
 			commandList += prefix + v[0] + "\n"
 		}
-		do := NewDiscordOutput("HELP", commandList+"\n\nUse "+prefix+"help [command] to get help for a specific command.", 0xb40000, dg, embeds, nil, nil)
+		do.Description = commandList + "\n\nUse " + prefix + "help [command] to get help for a specific command."
 		do.Send(channel)
 	} else {
 		for _, v := range usage {
 			if strings.ToLower(v[0]) == strings.ToLower(search) {
-				do := NewDiscordOutput("HELP", prefix+v[1], 0xb40000, dg, embeds, nil, nil)
+				do.Description = prefix + v[1]
 				do.Send(channel)
 				return
 			}
 		}
-		do := NewDiscordOutput("HELP", ":warning: Command not found.", 0xb40000, dg, embeds, nil, nil)
+		do.Description = ":warning: Command not found."
 		do.Send(channel)
 	}
 }
@@ -138,20 +138,10 @@ func cmdNext(dg *discordgo.Session, channel string, user string, search string) 
 	var event []string
 	var timeFormat = "2006-01-02 15:04:05 UTC"
 	var image string
-	embeds := false
+	do := NewDiscordOutput(dg, 0xb40000, "NEXT", "")
 	users, err := readCSV(usersFile)
-	/*
-		if err != nil {
-			output.Title = "NEXT"
-			output.Description = ":warning: Error getting users."
-			output.Color = 0xb40000
-			dg.ChannelMessageSendEmbed(channel, output)
-			log.Println("cmdNext:", err)
-			return
-		}
-	*/
 	if err != nil {
-		do := NewDiscordOutput("NEXT", ":warning: Error getting users.", 0xb40000, dg, embeds, nil, nil)
+		do.Description = ":warning: Error getting users."
 		do.Send(channel)
 		log.Println("cmdNext:", err)
 		return
@@ -160,7 +150,7 @@ func cmdNext(dg *discordgo.Session, channel string, user string, search string) 
 		if strings.ToLower(u[0]) == strings.ToLower(user) {
 			tz = u[1]
 			if strings.Contains(strings.ToLower(u[2]), "embeds") {
-				embeds = true
+				do.Embeds = true
 			}
 		}
 	}
@@ -193,7 +183,7 @@ func cmdNext(dg *discordgo.Session, channel string, user string, search string) 
 		event, err = findNext("any", "any")
 	}
 	if err != nil {
-		do := NewDiscordOutput("NEXT", ":warning: No event found.", 0xb40000, dg, embeds, nil, nil)
+		do.Description = ":warning: No event found."
 		do.Send(channel)
 		log.Println("cmdNext:", err)
 		return
@@ -203,7 +193,7 @@ func cmdNext(dg *discordgo.Session, channel string, user string, search string) 
 	// The time delta between now and the next event uses modulo to perfectly round days, hour an minutes.
 	t, err := time.Parse(timeFormat, event[3])
 	if err != nil {
-		do := NewDiscordOutput("NEXT", ":warning: Error parsing time.", 0xb40000, dg, embeds, nil, nil)
+		do.Description = ":warning: Error parsing time."
 		do.Send(channel)
 		log.Println("cmdNext:", err)
 		return
@@ -211,7 +201,7 @@ func cmdNext(dg *discordgo.Session, channel string, user string, search string) 
 	delta := time.Until(t)
 	loc, err := time.LoadLocation(tz)
 	if err != nil {
-		do := NewDiscordOutput("NEXT", ":warning: Error converting time to user time zone. Using default one.", 0xb40000, dg, embeds, nil, nil)
+		do.Description = ":warning: Error converting time to user time zone. Using default one."
 		do.Send(channel)
 		log.Println("cmdNext:", err)
 		return
@@ -253,7 +243,9 @@ func cmdNext(dg *discordgo.Session, channel string, user string, search string) 
 	if event[5] != "" {
 		image = event[5]
 	}
-	do := NewDiscordOutput("NEXT", "", 0x3f82ef, dg, embeds, &fields, &image)
+	do.Color = 0x3f82ef
+	do.Fields = &fields
+	do.Image = &image
 	do.Send(channel)
 
 }
@@ -262,10 +254,10 @@ func cmdNext(dg *discordgo.Session, channel string, user string, search string) 
 // It then checks if the user has asked a question and displays a random answer on the channel.
 func cmdAsk(dg *discordgo.Session, channel string, user string, args []string) {
 	// Get a collection of answers stored as a CSV file.
-	embeds := false
+	do := NewDiscordOutput(dg, 0xb40000, "ASK", "")
 	users, err := readCSV(usersFile)
 	if err != nil {
-		do := NewDiscordOutput("ASK", ":warning: Error getting users.", 0xb40000, dg, embeds, nil, nil)
+		do.Description = ":warning: Error getting users."
 		do.Send(channel)
 		log.Println("cmdAsk:", err)
 		return
@@ -273,13 +265,13 @@ func cmdAsk(dg *discordgo.Session, channel string, user string, args []string) {
 	for _, u := range users {
 		if strings.ToLower(u[0]) == strings.ToLower(user) {
 			if strings.Contains(strings.ToLower(u[2]), "embeds") {
-				embeds = true
+				do.Embeds = true
 			}
 		}
 	}
 	answers, err := readCSV(answersFile)
 	if err != nil {
-		do := NewDiscordOutput("ASK", ":warning: Error getting answer.", 0xb40000, dg, embeds, nil, nil)
+		do.Description = ":warning: Error getting answer."
 		do.Send(channel)
 		log.Println("cmdAsk:", err)
 		return
@@ -291,12 +283,13 @@ func cmdAsk(dg *discordgo.Session, channel string, user string, args []string) {
 	if len(args) > 0 {
 		rand.Seed(time.Now().UnixNano())
 		index := rand.Intn(len(answers))
-		do := NewDiscordOutput("ASK", answers[index][0], 0x3f82ef, dg, embeds, nil, nil)
+		do.Color = 0x3f82ef
+		do.Description = answers[index][0]
 		do.Send(channel)
 		// Otherwise, if we get here, it means the user didn't use the command correctly.
 		// Ttherefore we show a usage message on the channel.
 	} else {
-		do := NewDiscordOutput("ASK", ":warning: Usage: !ask <question>", 0xb40000, dg, embeds, nil, nil)
+		do.Description = ":warning: Usage: !ask <question>"
 		do.Send(channel)
 	}
 }
@@ -305,10 +298,10 @@ func cmdAsk(dg *discordgo.Session, channel string, user string, args []string) {
 // It then tries to execute the given plugin name if a file with that name is found on the plugins folder.
 func cmdPlugin(name string, dg *discordgo.Session, channel string, user string, args []string) {
 	var cmd *exec.Cmd
-	embeds := false
+	do := NewDiscordOutput(dg, 0xb40000, strings.ToUpper(name), "")
 	users, err := readCSV(usersFile)
 	if err != nil {
-		do := NewDiscordOutput(strings.ToUpper(name), ":warning: Error getting users.", 0xb40000, dg, embeds, nil, nil)
+		do.Description = ":warning: Error getting users."
 		do.Send(channel)
 		log.Println("cmdPlugin:", err)
 		return
@@ -316,12 +309,12 @@ func cmdPlugin(name string, dg *discordgo.Session, channel string, user string, 
 	for _, u := range users {
 		if strings.ToLower(u[0]) == strings.ToLower(user) {
 			if strings.Contains(strings.ToLower(u[2]), "embeds") {
-				embeds = true
+				do.Embeds = true
 			}
 		}
 	}
 	if !fileExists(pluginsFolder + name) {
-		do := NewDiscordOutput(strings.ToUpper(name), ":warning: Unkown command or plugin.", 0xb40000, dg, embeds, nil, nil)
+		do.Description = ":warning: Unkown command or plugin."
 		do.Send(channel)
 		return
 	}
@@ -335,11 +328,12 @@ func cmdPlugin(name string, dg *discordgo.Session, channel string, user string, 
 	}
 	cmdOutput, err := cmd.CombinedOutput()
 	if err != nil {
-		do := NewDiscordOutput(strings.ToUpper(name), ":warning: Error executing plugin.", 0xb40000, dg, embeds, nil, nil)
+		do.Description = ":warning: Error executing plugin."
 		do.Send(channel)
 		log.Println("cmdPlugin:", err)
 		return
 	}
-	do := NewDiscordOutput(strings.ToUpper(name), string(cmdOutput), 0x3f82ef, dg, embeds, nil, nil)
+	do.Color = 0x3f82ef
+	do.Description = string(cmdOutput)
 	do.Send(channel)
 }

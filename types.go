@@ -33,17 +33,17 @@ type Command struct {
 }
 
 type DiscordOutput struct {
+	Session     *discordgo.Session
+	Color       int
 	Title       string
 	Description string
-	Color       int
-	Session     *discordgo.Session
 	Embeds      bool
 	Fields      *[]map[string]string
 	Image       *string
 }
 
-func NewDiscordOutput(title string, description string, color int, s *discordgo.Session, embeds bool, fields *[]map[string]string, image *string) *DiscordOutput {
-	return &DiscordOutput{title, description, color, s, embeds, fields, image}
+func NewDiscordOutput(s *discordgo.Session, color int, title string, description string) *DiscordOutput {
+	return &DiscordOutput{s, color, title, description, false, nil, nil}
 }
 
 func (do *DiscordOutput) Send(channel string) {
