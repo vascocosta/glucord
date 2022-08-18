@@ -37,19 +37,56 @@ import (
 var (
 	commands = []*discordgo.ApplicationCommand{
 		{
+			Name:        "next",
+			Description: "Show the next upcoming event.",
+			Options: []*discordgo.ApplicationCommandOption{
+				{
+					Type:        discordgo.ApplicationCommandOptionString,
+					Name:        "search",
+					Description: "Search a specific category of events.",
+					Required:    false,
+				},
+			},
+		},
+		{
 			Name:        "ping",
 			Description: "Send a pong in reply to a ping.",
 			Options: []*discordgo.ApplicationCommandOption{
 				{
 					Type:        discordgo.ApplicationCommandOptionString,
 					Name:        "target",
-					Description: "Who to ping",
+					Description: "Who to ping.",
 					Required:    false,
 				},
 			},
 		},
 	}
 	commandHandlers = map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate){
+		"next": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			var content string
+			var embed *discordgo.MessageEmbed
+			var embeds []*discordgo.MessageEmbed
+			var args []string
+			options := i.ApplicationCommandData().Options
+			for _, v := range options {
+				args = append(args, v.Value.(string))
+			}
+			do := cmdNext(s, "", i.Member.User.ID, strings.Join(args, " "))
+			if do.Embeds {
+				embed = do.Embed()
+				embeds = append(embeds, embed)
+			} else {
+				content = do.Text()
+			}
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: content,
+					Embeds:  embeds,
+					Flags:   1 << 6,
+				},
+			})
+		},
 		"ping": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 			var content string
 			var embed *discordgo.MessageEmbed
