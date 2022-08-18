@@ -80,3 +80,39 @@ func (do *DiscordOutput) Send(channel string) {
 		do.Session.ChannelMessageSend(channel, do.Description)
 	}
 }
+
+func (do *DiscordOutput) Embed() (embed *discordgo.MessageEmbed) {
+	embed = &discordgo.MessageEmbed{}
+	embed.Title = do.Title
+	if do.Fields == nil {
+		embed.Description = do.Description
+	}
+	embed.Color = do.Color
+	if do.Fields != nil {
+		for _, v := range *do.Fields {
+			field := &discordgo.MessageEmbedField{}
+			field.Name = v["Name"]
+			field.Value = v["Value"]
+			embed.Fields = append(embed.Fields, field)
+		}
+	}
+	if do.Image != nil {
+		embedImage := &discordgo.MessageEmbedImage{}
+		embedImage.URL = *do.Image
+		embed.Image = embedImage
+	}
+	return
+}
+
+func (do *DiscordOutput) Text() (text string) {
+	if do.Fields != nil {
+		for _, v := range *do.Fields {
+			do.Description += fmt.Sprintf("**%s**\n%s\n", v["Name"], v["Value"])
+		}
+	}
+	if do.Image != nil {
+		do.Description += *do.Image
+	}
+	text = do.Description
+	return
+}

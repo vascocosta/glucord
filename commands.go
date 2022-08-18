@@ -30,6 +30,53 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
+// Slash commands are defined within a single var block instead of top level functions like regular commands.
+// The actual execution of slash commmands is done by the equivalent regular command functions defined below.
+// Slash commands are simple declarative boilerplate code to allow any regular commands to become slash ones.
+
+var (
+	commands = []*discordgo.ApplicationCommand{
+		{
+			Name:        "ping",
+			Description: "Send a pong in reply to a ping.",
+			Options: []*discordgo.ApplicationCommandOption{
+				{
+					Type:        discordgo.ApplicationCommandOptionString,
+					Name:        "target",
+					Description: "Who to ping",
+					Required:    false,
+				},
+			},
+		},
+	}
+	commandHandlers = map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate){
+		"ping": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			var content string
+			var embed *discordgo.MessageEmbed
+			var embeds []*discordgo.MessageEmbed
+			var args []string
+			options := i.ApplicationCommandData().Options
+			for _, v := range options {
+				args = append(args, v.Value.(string))
+			}
+			do := cmdPing(s, "", i.Member.User.ID, args)
+			if do.Embeds {
+				embed = do.Embed()
+				embeds = append(embeds, embed)
+			} else {
+				content = do.Text()
+			}
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: content,
+					Embeds:  embeds,
+				},
+			})
+		},
+	}
+)
+
 // The findNext function receives a category and session and returns the chronologically next event matching that criteria.
 func findNext(category string, session string) (event []string, err error) {
 	var t time.Time
@@ -88,19 +135,17 @@ func findNext(category string, session string) (event []string, err error) {
 
 // The help command receives a Discord session pointer, a channel and a search string.
 // It then shows a compact help message listing all the possible commands of the bot.
-func cmdHelp(dg *discordgo.Session, channel string, user string, search string) {
-	do := NewDiscordOutput(dg, 0xb40000, "HELP", "")
+func cmdHelp(dg *discordgo.Session, channel string, user string, search string) (do *DiscordOutput) {
+	do = NewDiscordOutput(dg, 0xb40000, "HELP", "")
 	usage, err := readCSV(usageFile)
 	if err != nil {
 		do.Description = ":warning: Error getting usage messages."
-		do.Send(channel)
 		log.Println("cmdHelp:", err)
 		return
 	}
 	users, err := readCSV(usersFile)
 	if err != nil {
 		do.Description = ":warning: Error getting users."
-		do.Send(channel)
 		log.Println("cmdHelp:", err)
 		return
 	}
@@ -117,32 +162,29 @@ func cmdHelp(dg *discordgo.Session, channel string, user string, search string) 
 			commandList += prefix + v[0] + "\n"
 		}
 		do.Description = commandList + "\n\nUse " + prefix + "help [command] to get help for a specific command."
-		do.Send(channel)
 	} else {
 		for _, v := range usage {
 			if strings.ToLower(v[0]) == strings.ToLower(search) {
 				do.Description = prefix + v[1]
-				do.Send(channel)
 				return
 			}
 		}
 		do.Description = ":warning: Command not found."
-		do.Send(channel)
 	}
+	return
 }
 
 // The next command receives a Discord session pointer, a channel, a user and an optional search string.
 // It then queries the events CSV file and returns which event is happening next, showing it on the channel.
-func cmdNext(dg *discordgo.Session, channel string, user string, search string) {
+func cmdNext(dg *discordgo.Session, channel string, user string, search string) (do *DiscordOutput) {
 	var tz = "Europe/Berlin"
 	var event []string
 	var timeFormat = "2006-01-02 15:04:05 UTC"
 	var image string
-	do := NewDiscordOutput(dg, 0xb40000, "NEXT", "")
+	do = NewDiscordOutput(dg, 0xb40000, "NEXT", "")
 	users, err := readCSV(usersFile)
 	if err != nil {
 		do.Description = ":warning: Error getting users."
-		do.Send(channel)
 		log.Println("cmdNext:", err)
 		return
 	}
@@ -184,7 +226,6 @@ func cmdNext(dg *discordgo.Session, channel string, user string, search string) 
 	}
 	if err != nil {
 		do.Description = ":warning: No event found."
-		do.Send(channel)
 		log.Println("cmdNext:", err)
 		return
 	}
@@ -194,7 +235,6 @@ func cmdNext(dg *discordgo.Session, channel string, user string, search string) 
 	t, err := time.Parse(timeFormat, event[3])
 	if err != nil {
 		do.Description = ":warning: Error parsing time."
-		do.Send(channel)
 		log.Println("cmdNext:", err)
 		return
 	}
@@ -202,7 +242,6 @@ func cmdNext(dg *discordgo.Session, channel string, user string, search string) 
 	loc, err := time.LoadLocation(tz)
 	if err != nil {
 		do.Description = ":warning: Error converting time to user time zone. Using default one."
-		do.Send(channel)
 		log.Println("cmdNext:", err)
 		return
 	}
@@ -246,19 +285,17 @@ func cmdNext(dg *discordgo.Session, channel string, user string, search string) 
 	do.Color = 0x3f82ef
 	do.Fields = &fields
 	do.Image = &image
-	do.Send(channel)
-
+	return
 }
 
 // The ask command receives a Discord session pointer, a channel and an arguments slice of strings.
 // It then checks if the user has asked a question and displays a random answer on the channel.
-func cmdAsk(dg *discordgo.Session, channel string, user string, args []string) {
+func cmdAsk(dg *discordgo.Session, channel string, user string, args []string) (do *DiscordOutput) {
 	// Get a collection of answers stored as a CSV file.
-	do := NewDiscordOutput(dg, 0xb40000, "ASK", "")
+	do = NewDiscordOutput(dg, 0xb40000, "ASK", "")
 	users, err := readCSV(usersFile)
 	if err != nil {
 		do.Description = ":warning: Error getting users."
-		do.Send(channel)
 		log.Println("cmdAsk:", err)
 		return
 	}
@@ -272,7 +309,6 @@ func cmdAsk(dg *discordgo.Session, channel string, user string, args []string) {
 	answers, err := readCSV(answersFile)
 	if err != nil {
 		do.Description = ":warning: Error getting answer."
-		do.Send(channel)
 		log.Println("cmdAsk:", err)
 		return
 	}
@@ -285,13 +321,12 @@ func cmdAsk(dg *discordgo.Session, channel string, user string, args []string) {
 		index := rand.Intn(len(answers))
 		do.Color = 0x3f82ef
 		do.Description = answers[index][0]
-		do.Send(channel)
 		// Otherwise, if we get here, it means the user didn't use the command correctly.
 		// Ttherefore we show a usage message on the channel.
 	} else {
 		do.Description = ":warning: Usage: !ask <question>"
-		do.Send(channel)
 	}
+	return
 }
 
 // The plugin command receives a name, a Discord session pointer, a channel, a user and an arguments slice of strings.
@@ -340,12 +375,11 @@ func cmdPlugin(name string, dg *discordgo.Session, channel string, user string, 
 
 // The quote command receives a Discord session pointer, a channel and an arguments slice of strings.
 // It then checks if there are arguments and displays a random quote or adds a new quote accordingly.
-func cmdQuote(dg *discordgo.Session, channel string, user string, args []string) {
-	do := NewDiscordOutput(dg, 0xb40000, "QUOTE", "")
+func cmdQuote(dg *discordgo.Session, channel string, user string, args []string) (do *DiscordOutput) {
+	do = NewDiscordOutput(dg, 0xb40000, "QUOTE", "")
 	users, err := readCSV(usersFile)
 	if err != nil {
 		do.Description = ":warning: Error getting users."
-		do.Send(channel)
 		log.Println("cmdQuote:", err)
 		return
 	}
@@ -360,7 +394,6 @@ func cmdQuote(dg *discordgo.Session, channel string, user string, args []string)
 	quotes, err := readCSV(quotesFile)
 	if err != nil {
 		do.Description = ":warning: Error getting quote."
-		do.Send(channel)
 		log.Println("cmdQuote:", err)
 		return
 	}
@@ -378,14 +411,12 @@ func cmdQuote(dg *discordgo.Session, channel string, user string, args []string)
 	if len(args) == 0 || (len(args) > 0 && strings.ToLower(args[0]) == "get") {
 		if len(channelQuotes) == 0 {
 			do.Description = ":warning: There are no quotes for this channel."
-			do.Send(channel)
 			return
 		}
 		rand.Seed(time.Now().UnixNano())
 		index := rand.Intn(len(channelQuotes))
 		do.Color = 0x3f82ef
 		do.Description = fmt.Sprintf("%s - %s", channelQuotes[index][1], channelQuotes[index][0])
-		do.Send(channel)
 		// If there is more than one argument and the first argument is "add", add the provided quote.
 		// Finally we show a confirmation message on the channel.
 	} else if len(args) > 1 && strings.ToLower(args[0]) == "add" {
@@ -393,17 +424,39 @@ func cmdQuote(dg *discordgo.Session, channel string, user string, args []string)
 		err = writeCSV(quotesFile, quotes)
 		if err != nil {
 			do.Description = "Error adding quote."
-			do.Send(channel)
 			log.Println("cmdQuote:", err)
 			return
 		}
 		do.Color = 0x3f82ef
 		do.Description = "Quote added."
-		do.Send(channel)
 		// Otherwise, if we get here, it means the user didn't use the command correctly.
 		// Ttherefore we show a usage message on the channel.
 	} else {
 		do.Description = "Usage: !quote [get|add] [text]"
-		do.Send(channel)
 	}
+	return
+}
+
+func cmdPing(dg *discordgo.Session, channel string, user string, args []string) (do *DiscordOutput) {
+	do = NewDiscordOutput(dg, 0xb40000, "PING", "")
+	users, err := readCSV(usersFile)
+	if err != nil {
+		do.Description = ":warning: Error getting users."
+		log.Println("cmdQuote:", err)
+		return
+	}
+	for _, u := range users {
+		if strings.ToLower(u[0]) == strings.ToLower(user) {
+			if strings.Contains(strings.ToLower(u[2]), "embeds") {
+				do.Embeds = true
+			}
+		}
+	}
+	do.Color = 0x3f82ef
+	if len(args) > 0 {
+		do.Description = args[0]
+	} else {
+		do.Description = "Pong."
+	}
+	return
 }

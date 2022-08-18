@@ -33,6 +33,7 @@ import (
 var (
 	prefix       = "!" // Prefix which is used by the user to issue commands.
 	token        = ""  // Token used to authenticate the bot with Discord.
+	guild        = ""  // Guild ID.
 	feedInterval = 300 // Feed poll interval in seconds.
 )
 
@@ -57,17 +58,28 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	if err != nil {
 		return
 	} else {
+		var do *DiscordOutput
 		switch strings.ToLower(command.Name) {
 		case "a", "ask":
-			cmdAsk(s, command.Channel, command.User, command.Args)
+			do = cmdAsk(s, command.Channel, command.User, command.Args)
 		case "h", "help", "commands":
-			cmdHelp(s, command.Channel, command.User, strings.Join(command.Args, ""))
+			do = cmdHelp(s, command.Channel, command.User, strings.Join(command.Args, ""))
 		case "n", "next":
-			cmdNext(s, command.Channel, command.User, strings.Join(command.Args, " "))
+			do = cmdNext(s, command.Channel, command.User, strings.Join(command.Args, " "))
+		case "p", "ping":
+			do = cmdPing(s, command.Channel, command.User, command.Args)
 		case "q", "quote":
 			cmdQuote(s, command.Channel, command.User, command.Args)
 		default:
 			go cmdPlugin(strings.ToLower(command.Name), s, command.Channel, command.User, command.Args)
+			return
+		}
+		if do != nil {
+			if do.Embeds {
+				s.ChannelMessageSendEmbed(command.Channel, do.Embed())
+			} else {
+				s.ChannelMessageSend(command.Channel, do.Text())
+			}
 		}
 	}
 
@@ -81,13 +93,19 @@ func main() {
 	}
 	prefix = config[0][0]
 	token = config[0][1]
-	feedInterval, _ = strconv.Atoi(config[0][2])
+	guild = config[0][2]
+	feedInterval, _ = strconv.Atoi(config[0][3])
 	dg, err := discordgo.New("Bot " + token)
 	if err != nil {
 		log.Println("main:", err)
 		return
 	}
 	dg.AddHandler(messageCreate)
+	dg.AddHandler(func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+		if h, ok := commandHandlers[i.ApplicationCommandData().Name]; ok {
+			h(s, i)
+		}
+	})
 	dg.Identify.Intents = discordgo.IntentsGuildMessages
 	err = dg.Open()
 	if err != nil {
@@ -97,8 +115,22 @@ func main() {
 	fmt.Println("The bot is now running. Press CTRL-C to exit.")
 	go tskFeeds(dg)
 	go tskEvents(dg)
+	registeredCommands := make([]*discordgo.ApplicationCommand, len(commands))
+	for i, v := range commands {
+		cmd, err := dg.ApplicationCommandCreate(dg.State.User.ID, guild, v)
+		if err != nil {
+			log.Panicf("Cannot create '%v' command: %v", v.Name, err)
+		}
+		registeredCommands[i] = cmd
+	}
 	sc := make(chan os.Signal, 1)
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt, os.Kill)
 	<-sc
+	for _, v := range registeredCommands {
+		err := dg.ApplicationCommandDelete(dg.State.User.ID, guild, v.ID)
+		if err != nil {
+			log.Panicf("Cannot delete '%v' command: %v", v.Name, err)
+		}
+	}
 	dg.Close()
 }
