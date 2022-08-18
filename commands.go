@@ -337,3 +337,73 @@ func cmdPlugin(name string, dg *discordgo.Session, channel string, user string, 
 	do.Description = string(cmdOutput)
 	do.Send(channel)
 }
+
+// The quote command receives a Discord session pointer, a channel and an arguments slice of strings.
+// It then checks if there are arguments and displays a random quote or adds a new quote accordingly.
+func cmdQuote(dg *discordgo.Session, channel string, user string, args []string) {
+	do := NewDiscordOutput(dg, 0xb40000, "QUOTE", "")
+	users, err := readCSV(usersFile)
+	if err != nil {
+		do.Description = ":warning: Error getting users."
+		do.Send(channel)
+		log.Println("cmdQuote:", err)
+		return
+	}
+	for _, u := range users {
+		if strings.ToLower(u[0]) == strings.ToLower(user) {
+			if strings.Contains(strings.ToLower(u[2]), "embeds") {
+				do.Embeds = true
+			}
+		}
+	}
+	// Get a collection of quotes stored as a CSV file.
+	quotes, err := readCSV(quotesFile)
+	if err != nil {
+		do.Description = ":warning: Error getting quote."
+		do.Send(channel)
+		log.Println("cmdQuote:", err)
+		return
+	}
+	// Filter only the quotes of the current channel.
+	var channelQuotes [][]string
+	for _, quote := range quotes {
+		if strings.ToLower(quote[2]) == strings.ToLower(channel) {
+			channelQuotes = append(channelQuotes, quote)
+		}
+	}
+	// If there are no arguments or if the first argument is "get", show a random quote.
+	// We seed the randomizer with some variable number, the current time in nano seconds.
+	// Then we set the index to the quotes to a random number between 0 and the length of quotes.
+	// Finally we show a random quote on the channel.
+	if len(args) == 0 || (len(args) > 0 && strings.ToLower(args[0]) == "get") {
+		if len(channelQuotes) == 0 {
+			do.Description = ":warning: There are no quotes for this channel."
+			do.Send(channel)
+			return
+		}
+		rand.Seed(time.Now().UnixNano())
+		index := rand.Intn(len(channelQuotes))
+		do.Color = 0x3f82ef
+		do.Description = fmt.Sprintf("%s - %s", channelQuotes[index][1], channelQuotes[index][0])
+		do.Send(channel)
+		// If there is more than one argument and the first argument is "add", add the provided quote.
+		// Finally we show a confirmation message on the channel.
+	} else if len(args) > 1 && strings.ToLower(args[0]) == "add" {
+		quotes = append(quotes, []string{time.Now().Format("02-01-2006"), strings.Join(args[1:], " "), strings.ToLower(channel)})
+		err = writeCSV(quotesFile, quotes)
+		if err != nil {
+			do.Description = "Error adding quote."
+			do.Send(channel)
+			log.Println("cmdQuote:", err)
+			return
+		}
+		do.Color = 0x3f82ef
+		do.Description = "Quote added."
+		do.Send(channel)
+		// Otherwise, if we get here, it means the user didn't use the command correctly.
+		// Ttherefore we show a usage message on the channel.
+	} else {
+		do.Description = "Usage: !quote [get|add] [text]"
+		do.Send(channel)
+	}
+}

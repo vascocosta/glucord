@@ -42,6 +42,7 @@ const (
 	eventsFile    = "events.csv"  // Full path to the events file.
 	feedsFile     = "feeds.csv"   // Full path to the feeds file.
 	pluginsFolder = "./plugins/"  // Full path to the plugins folder.
+	quotesFile    = "quotes.csv"  // Full path to the quotes file.
 	usageFile     = "usage.csv"   // Full path to the usage file.
 	usersFile     = "users.csv"   // Full path to the users file.
 	hns           = 3600000000000 // Number of nanoseconds in one hour.
@@ -63,6 +64,8 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 			cmdHelp(s, command.Channel, command.User, strings.Join(command.Args, ""))
 		case "n", "next":
 			cmdNext(s, command.Channel, command.User, strings.Join(command.Args, " "))
+		case "q", "quote":
+			cmdQuote(s, command.Channel, command.User, command.Args)
 		default:
 			go cmdPlugin(strings.ToLower(command.Name), s, command.Channel, command.User, command.Args)
 		}
