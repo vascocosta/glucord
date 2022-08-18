@@ -37,12 +37,24 @@ import (
 var (
 	commands = []*discordgo.ApplicationCommand{
 		{
+			Name:        "help",
+			Description: "Show help messages for each command.",
+			Options: []*discordgo.ApplicationCommandOption{
+				{
+					Type:        discordgo.ApplicationCommandOptionString,
+					Name:        "command",
+					Description: "Show the help message of a specific command.",
+					Required:    false,
+				},
+			},
+		},
+		{
 			Name:        "next",
 			Description: "Show the next upcoming event.",
 			Options: []*discordgo.ApplicationCommandOption{
 				{
 					Type:        discordgo.ApplicationCommandOptionString,
-					Name:        "search",
+					Name:        "category",
 					Description: "Search a specific category of events.",
 					Required:    false,
 				},
@@ -62,6 +74,31 @@ var (
 		},
 	}
 	commandHandlers = map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate){
+		"help": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			var content string
+			var embed *discordgo.MessageEmbed
+			var embeds []*discordgo.MessageEmbed
+			var args []string
+			options := i.ApplicationCommandData().Options
+			for _, v := range options {
+				args = append(args, v.Value.(string))
+			}
+			do := cmdHelp(s, "", i.Member.User.ID, strings.Join(args, " "))
+			if do.Embeds {
+				embed = do.Embed()
+				embeds = append(embeds, embed)
+			} else {
+				content = do.Text()
+			}
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: content,
+					Embeds:  embeds,
+					Flags:   1 << 6,
+				},
+			})
+		},
 		"next": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 			var content string
 			var embed *discordgo.MessageEmbed
