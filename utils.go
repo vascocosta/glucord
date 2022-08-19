@@ -40,13 +40,13 @@ func contains(s []string, str string) bool {
 // Small utility function that returns a map[string]string given a [][]string and a key/value pair.
 func toStringMap(s [][]string, key int, value int) (result map[string]string, err error) {
 	if len(s) == 0 || key < 0 || value < 0 || key >= value {
-		err := errors.New("Invalid slice, key or value.")
+		err := errors.New("invalid slice, key or value")
 		return result, err
 	}
 	result = make(map[string]string)
 	for _, v := range s {
 		if (key > (len(v) - 1)) || (value > (len(v) - 1)) {
-			err := errors.New("Invalid slice, key or value.")
+			err := errors.New("invalid slice, key or value")
 			return result, err
 		}
 		result[v[key]] = v[value]
@@ -131,12 +131,12 @@ func getURL(url string) (data []byte, err error) {
 	res, err := http.Get(url)
 	defer res.Body.Close()
 	if err != nil {
-		err = errors.New("Error getting HTTP data.")
+		err = errors.New("error getting HTTP data")
 		return
 	}
 	data, err = ioutil.ReadAll(res.Body)
 	if err != nil {
-		err = errors.New("Error getting HTTP data.")
+		err = errors.New("error getting HTTP data")
 		return
 	}
 	return
@@ -152,7 +152,7 @@ func parseCommand(message string, user string, channel string) (command Command,
 		command.Channel = channel
 		return
 	} else {
-		err = errors.New("parsecmd: Invalid command.")
+		err = errors.New("invalid command")
 		return
 	}
 }
