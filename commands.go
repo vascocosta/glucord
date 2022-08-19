@@ -33,7 +33,6 @@ import (
 // Slash commands are defined within a single var block instead of top level functions like regular commands.
 // The actual execution of slash commmands is done by the equivalent regular command functions defined below.
 // Slash commands are simple declarative boilerplate code to allow any regular commands to become slash ones.
-
 var (
 	commands = []*discordgo.ApplicationCommand{
 		{
