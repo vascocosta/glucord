@@ -167,14 +167,14 @@ func findNext(category string, session string) (event []string, err error) {
 		case strings.ToLower(category) == "any" && strings.ToLower(session) == "any":
 			t, err = time.Parse(timeFormat, e[3])
 			if err != nil {
-				err = errors.New("Error parsing time.")
+				err = errors.New("error parsing time")
 				return event, err
 			}
 		case strings.ToLower(category) != "any" && strings.ToLower(session) == "any":
 			if strings.Contains(strings.ToLower(e[0]), strings.ToLower(category)) {
 				t, err = time.Parse(timeFormat, e[3])
 				if err != nil {
-					err = errors.New("Error parsing time.")
+					err = errors.New("error parsing time")
 					return event, err
 				}
 			}
@@ -182,7 +182,7 @@ func findNext(category string, session string) (event []string, err error) {
 			if strings.Contains(strings.ToLower(e[2]), strings.ToLower(session)) {
 				t, err = time.Parse(timeFormat, e[3])
 				if err != nil {
-					err = errors.New("Error parsing time.")
+					err = errors.New("error parsing time")
 					return event, err
 				}
 			}
@@ -190,7 +190,7 @@ func findNext(category string, session string) (event []string, err error) {
 			if strings.ToLower(e[0]) == strings.ToLower(category) && strings.ToLower(e[2]) == strings.ToLower(session) {
 				t, err = time.Parse(timeFormat, e[3])
 				if err != nil {
-					err = errors.New("Error parsing time.")
+					err = errors.New("error parsing time")
 					return event, err
 				}
 			}
@@ -203,7 +203,7 @@ func findNext(category string, session string) (event []string, err error) {
 			return event, nil
 		}
 	}
-	err = errors.New("No event found.")
+	err = errors.New("no event found")
 	return
 }
 
