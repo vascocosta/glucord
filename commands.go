@@ -187,7 +187,7 @@ func findNext(category string, session string) (event []string, err error) {
 				}
 			}
 		default:
-			if strings.ToLower(e[0]) == strings.ToLower(category) && strings.ToLower(e[2]) == strings.ToLower(session) {
+			if strings.EqualFold(e[0], category) && strings.EqualFold(e[2], session) {
 				t, err = time.Parse(timeFormat, e[3])
 				if err != nil {
 					err = errors.New("error parsing time")
@@ -224,7 +224,7 @@ func cmdHelp(dg *discordgo.Session, channel string, user string, search string) 
 		return
 	}
 	for _, u := range users {
-		if strings.ToLower(u[0]) == strings.ToLower(user) {
+		if strings.EqualFold(u[0], user) {
 			if strings.Contains(strings.ToLower(u[2]), "embeds") {
 				do.Embeds = true
 			}
@@ -238,7 +238,7 @@ func cmdHelp(dg *discordgo.Session, channel string, user string, search string) 
 		do.Description = commandList + "\n\nUse " + prefix + "help [command] to get help for a specific command."
 	} else {
 		for _, v := range usage {
-			if strings.ToLower(v[0]) == strings.ToLower(search) {
+			if strings.EqualFold(v[0], search) {
 				do.Description = prefix + v[1]
 				return
 			}
@@ -263,7 +263,7 @@ func cmdNext(dg *discordgo.Session, channel string, user string, search string) 
 		return
 	}
 	for _, u := range users {
-		if strings.ToLower(u[0]) == strings.ToLower(user) {
+		if strings.EqualFold(u[0], user) {
 			tz = u[1]
 			if strings.Contains(strings.ToLower(u[2]), "embeds") {
 				do.Embeds = true
@@ -342,7 +342,7 @@ func cmdNext(dg *discordgo.Session, channel string, user string, search string) 
 	}
 	category := map[string]string{
 		"Name":  "Category:",
-		"Value": fmt.Sprintf("%s", event[0]),
+		"Value": event[0],
 	}
 	description := map[string]string{
 		"Name":  "Event:",
@@ -374,7 +374,7 @@ func cmdAsk(dg *discordgo.Session, channel string, user string, args []string) (
 		return
 	}
 	for _, u := range users {
-		if strings.ToLower(u[0]) == strings.ToLower(user) {
+		if strings.EqualFold(u[0], user) {
 			if strings.Contains(strings.ToLower(u[2]), "embeds") {
 				do.Embeds = true
 			}
@@ -416,7 +416,7 @@ func cmdPlugin(name string, dg *discordgo.Session, channel string, user string, 
 		return
 	}
 	for _, u := range users {
-		if strings.ToLower(u[0]) == strings.ToLower(user) {
+		if strings.EqualFold(u[0], user) {
 			if strings.Contains(strings.ToLower(u[2]), "embeds") {
 				do.Embeds = true
 			}
@@ -458,7 +458,7 @@ func cmdQuote(dg *discordgo.Session, channel string, user string, args []string)
 		return
 	}
 	for _, u := range users {
-		if strings.ToLower(u[0]) == strings.ToLower(user) {
+		if strings.EqualFold(u[0], user) {
 			if strings.Contains(strings.ToLower(u[2]), "embeds") {
 				do.Embeds = true
 			}
@@ -474,7 +474,7 @@ func cmdQuote(dg *discordgo.Session, channel string, user string, args []string)
 	// Filter only the quotes of the current channel.
 	var channelQuotes [][]string
 	for _, quote := range quotes {
-		if strings.ToLower(quote[2]) == strings.ToLower(channel) {
+		if strings.EqualFold(quote[2], channel) {
 			channelQuotes = append(channelQuotes, quote)
 		}
 	}
@@ -520,7 +520,7 @@ func cmdPing(dg *discordgo.Session, channel string, user string, args []string) 
 		return
 	}
 	for _, u := range users {
-		if strings.ToLower(u[0]) == strings.ToLower(user) {
+		if strings.EqualFold(u[0], user) {
 			if strings.Contains(strings.ToLower(u[2]), "embeds") {
 				do.Embeds = true
 			}
