@@ -77,7 +77,7 @@ func (do *DiscordOutput) Send(channel string) {
 		if do.Image != nil {
 			do.Description += *do.Image
 		}
-		do.Session.ChannelMessageSend(channel, do.Description)
+		do.Session.ChannelMessageSend(channel, fmt.Sprintf("\n%s", do.Description))
 	}
 }
 
@@ -113,6 +113,6 @@ func (do *DiscordOutput) Text() (text string) {
 	if do.Image != nil {
 		do.Description += *do.Image
 	}
-	text = do.Description
+	text = fmt.Sprintf("\n%s", do.Description)
 	return
 }
