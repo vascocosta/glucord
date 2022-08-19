@@ -32,6 +32,7 @@ type Command struct {
 	Channel string
 }
 
+// Type that represents a Discord output sent by the bot.
 type DiscordOutput struct {
 	Session     *discordgo.Session
 	Color       int

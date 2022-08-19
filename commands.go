@@ -210,12 +210,6 @@ func findNext(category string, session string) (event []string, err error) {
 // It then shows a compact help message listing all the possible commands of the bot.
 func cmdHelp(dg *discordgo.Session, channel string, user string, search string) (do *DiscordOutput) {
 	do = NewDiscordOutput(dg, 0xb40000, "HELP", "")
-	usage, err := readCSV(usageFile)
-	if err != nil {
-		do.Description = ":warning: Error getting usage messages."
-		log.Println("cmdHelp:", err)
-		return
-	}
 	users, err := readCSV(usersFile)
 	if err != nil {
 		do.Description = ":warning: Error getting users."
@@ -228,6 +222,13 @@ func cmdHelp(dg *discordgo.Session, channel string, user string, search string) 
 				do.Embeds = true
 			}
 		}
+	}
+	// Get a collection of usage strings stored as a CSV file.
+	usage, err := readCSV(usageFile)
+	if err != nil {
+		do.Description = ":warning: Error getting usage messages."
+		log.Println("cmdHelp:", err)
+		return
 	}
 	if search == "" {
 		var commandList string
@@ -364,7 +365,6 @@ func cmdNext(dg *discordgo.Session, channel string, user string, search string) 
 // The ask command receives a Discord session pointer, a channel and an arguments slice of strings.
 // It then checks if the user has asked a question and displays a random answer on the channel.
 func cmdAsk(dg *discordgo.Session, channel string, user string, args []string) (do *DiscordOutput) {
-	// Get a collection of answers stored as a CSV file.
 	do = NewDiscordOutput(dg, 0xb40000, "ASK", "")
 	users, err := readCSV(usersFile)
 	if err != nil {
@@ -379,6 +379,7 @@ func cmdAsk(dg *discordgo.Session, channel string, user string, args []string) (
 			}
 		}
 	}
+	// Get a collection of answers stored as a CSV file.
 	answers, err := readCSV(answersFile)
 	if err != nil {
 		do.Description = ":warning: Error getting answer."
@@ -421,11 +422,14 @@ func cmdPlugin(name string, dg *discordgo.Session, channel string, user string, 
 			}
 		}
 	}
+	// We check if the command is a plugin or not by checking if a file with that name exists.
+	// If it doesn't exist this isn't a valid plugin and therefore we must stop the execution.
 	if !fileExists(pluginsFolder + name) {
 		do.Description = ":warning: Unkown command or plugin."
 		do.Send(channel)
 		return
 	}
+	// Otherwise this is a valid plugin and we execute the process with the correct arguments.
 	if len(args) == 0 {
 		cmd = exec.Command(pluginsFolder+name, user)
 	} else {
@@ -510,6 +514,8 @@ func cmdQuote(dg *discordgo.Session, channel string, user string, args []string)
 	return
 }
 
+// The ping command receives a Discord session pointer, a channel, a user and an arguments slice of strings.
+// It then answers to the user using the Pong word or the target word passed by the user as an argument.
 func cmdPing(dg *discordgo.Session, channel string, user string, args []string) (do *DiscordOutput) {
 	do = NewDiscordOutput(dg, 0xb40000, "PING", "")
 	users, err := readCSV(usersFile)
@@ -526,6 +532,7 @@ func cmdPing(dg *discordgo.Session, channel string, user string, args []string) 
 		}
 	}
 	do.Color = 0x3f82ef
+	// Distinguish between sending simply the word Pong or whatver word was passed as argument by the user.
 	if len(args) > 0 {
 		do.Description = args[0]
 	} else {
