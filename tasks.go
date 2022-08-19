@@ -90,17 +90,16 @@ func tskFeeds(dg *discordgo.Session) {
 							item.Link = strings.Split(item.Link, "?")[0]
 						}
 						dg.ChannelMessageSend(feeds[feedData.Key][2], item.Link)
-						feeds[feedData.Key][3] = fmt.Sprintf("%s", itemTime)
+						feeds[feedData.Key][3] = itemTime.String()
 						writeCSV(feedsFile, feeds)
 						time.Sleep(1 * time.Second)
 					}
 				}
 			case <-time.After(60 * time.Second):
 				timeout = true
-				break // Break out of the select statement.
 			}
 			if timeout {
-				break // We need this second break when a timeout occurs to break out of the select loop.
+				break
 			}
 		}
 	}
@@ -141,7 +140,7 @@ func tskEvents(dg *discordgo.Session) {
 				category := &discordgo.MessageEmbedField{}
 				description := &discordgo.MessageEmbedField{}
 				category.Name = "Category:"
-				category.Value = fmt.Sprintf("%s", event[0])
+				category.Value = event[0]
 				output.Fields = append(output.Fields, category)
 				description.Name = "Event:"
 				description.Value = fmt.Sprintf("%s %s", event[1], event[2])
