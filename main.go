@@ -112,7 +112,6 @@ func main() {
 		fmt.Println("main:", err)
 		return
 	}
-	fmt.Println("The bot is now running. Press CTRL-C to exit.")
 	go tskFeeds(dg)
 	go tskEvents(dg)
 	registeredCommands := make([]*discordgo.ApplicationCommand, len(commands))
@@ -124,7 +123,7 @@ func main() {
 		registeredCommands[i] = cmd
 	}
 	sc := make(chan os.Signal, 1)
-	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt, os.Kill)
+	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
 	<-sc
 	for _, v := range registeredCommands {
 		err := dg.ApplicationCommandDelete(dg.State.User.ID, guild, v.ID)
