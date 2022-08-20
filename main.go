@@ -72,7 +72,9 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		case "p", "ping":
 			do = cmdPing(s, command.Channel, command.User, command.Args)
 		case "q", "quote":
-			cmdQuote(s, command.Channel, command.User, command.Args)
+			do = cmdQuote(s, command.Channel, command.User, command.Args)
+		case "r", "register":
+			do = cmdRegister(s, command.Channel, command.User)
 		default:
 			go cmdPlugin(strings.ToLower(command.Name), s, command.Channel, command.User, command.Args)
 			return

@@ -71,6 +71,10 @@ var (
 				},
 			},
 		},
+		{
+			Name:        "register",
+			Description: "Register your user on the bot.",
+		},
 	}
 	commandHandlers = map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate){
 		"help": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
@@ -147,6 +151,26 @@ var (
 				},
 			})
 		},
+		"register": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			var content string
+			var embed *discordgo.MessageEmbed
+			var embeds []*discordgo.MessageEmbed
+			do := cmdRegister(s, "", i.Member.User.ID)
+			if do.Embeds {
+				embed = do.Embed()
+				embeds = append(embeds, embed)
+			} else {
+				content = do.Text()
+			}
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: content,
+					Embeds:  embeds,
+					Flags:   1 << 6,
+				},
+			})
+		},
 	}
 )
 
@@ -203,6 +227,47 @@ func findNext(category string, session string) (event []string, err error) {
 		}
 	}
 	err = errors.New("no event found")
+	return
+}
+
+// The ask command receives a Discord session pointer, a channel and an arguments slice of strings.
+// It then checks if the user has asked a question and displays a random answer on the channel.
+func cmdAsk(dg *discordgo.Session, channel string, user string, args []string) (do *DiscordOutput) {
+	do = NewDiscordOutput(dg, 0xb40000, "ASK", "")
+	users, err := readCSV(usersFile)
+	if err != nil {
+		do.Description = ":warning: Error getting users."
+		log.Println("cmdAsk:", err)
+		return
+	}
+	for _, u := range users {
+		if strings.EqualFold(u[0], user) {
+			if strings.Contains(strings.ToLower(u[2]), "embeds") {
+				do.Embeds = true
+			}
+		}
+	}
+	// Get a collection of answers stored as a CSV file.
+	answers, err := readCSV(answersFile)
+	if err != nil {
+		do.Description = ":warning: Error getting answer."
+		log.Println("cmdAsk:", err)
+		return
+	}
+	// If the number of arguments is greater than 0, a question was asked, we show a random answer.
+	// We seed the randomizer with some variable number, the current time in nano seconds.
+	// Then we set the index to the answers to a random number between 0 and the length of answers.
+	// Finally we show a random answer on the channel.
+	if len(args) > 0 {
+		rand.Seed(time.Now().UnixNano())
+		index := rand.Intn(len(answers))
+		do.Color = 0x3f82ef
+		do.Description = answers[index][0]
+		// Otherwise, if we get here, it means the user didn't use the command correctly.
+		// Ttherefore we show a usage message on the channel.
+	} else {
+		do.Description = ":warning: Usage: !ask <question>"
+	}
 	return
 }
 
@@ -362,14 +427,14 @@ func cmdNext(dg *discordgo.Session, channel string, user string, search string) 
 	return
 }
 
-// The ask command receives a Discord session pointer, a channel and an arguments slice of strings.
-// It then checks if the user has asked a question and displays a random answer on the channel.
-func cmdAsk(dg *discordgo.Session, channel string, user string, args []string) (do *DiscordOutput) {
-	do = NewDiscordOutput(dg, 0xb40000, "ASK", "")
+// The ping command receives a Discord session pointer, a channel, a user and an arguments slice of strings.
+// It then answers to the user using the Pong word or the target word passed by the user as an argument.
+func cmdPing(dg *discordgo.Session, channel string, user string, args []string) (do *DiscordOutput) {
+	do = NewDiscordOutput(dg, 0xb40000, "PING", "")
 	users, err := readCSV(usersFile)
 	if err != nil {
 		do.Description = ":warning: Error getting users."
-		log.Println("cmdAsk:", err)
+		log.Println("cmdQuote:", err)
 		return
 	}
 	for _, u := range users {
@@ -379,26 +444,12 @@ func cmdAsk(dg *discordgo.Session, channel string, user string, args []string) (
 			}
 		}
 	}
-	// Get a collection of answers stored as a CSV file.
-	answers, err := readCSV(answersFile)
-	if err != nil {
-		do.Description = ":warning: Error getting answer."
-		log.Println("cmdAsk:", err)
-		return
-	}
-	// If the number of arguments is greater than 0, a question was asked, we show a random answer.
-	// We seed the randomizer with some variable number, the current time in nano seconds.
-	// Then we set the index to the answers to a random number between 0 and the length of answers.
-	// Finally we show a random answer on the channel.
+	do.Color = 0x3f82ef
+	// Distinguish between sending simply the word Pong or whatver word was passed as argument by the user.
 	if len(args) > 0 {
-		rand.Seed(time.Now().UnixNano())
-		index := rand.Intn(len(answers))
-		do.Color = 0x3f82ef
-		do.Description = answers[index][0]
-		// Otherwise, if we get here, it means the user didn't use the command correctly.
-		// Ttherefore we show a usage message on the channel.
+		do.Description = args[0]
 	} else {
-		do.Description = ":warning: Usage: !ask <question>"
+		do.Description = "Pong."
 	}
 	return
 }
@@ -514,14 +565,14 @@ func cmdQuote(dg *discordgo.Session, channel string, user string, args []string)
 	return
 }
 
-// The ping command receives a Discord session pointer, a channel, a user and an arguments slice of strings.
-// It then answers to the user using the Pong word or the target word passed by the user as an argument.
-func cmdPing(dg *discordgo.Session, channel string, user string, args []string) (do *DiscordOutput) {
-	do = NewDiscordOutput(dg, 0xb40000, "PING", "")
+// The register command receives a Discord session pointer, a channel and a user.
+// It then checks if the user isn't already registered and registers it with the bot.
+func cmdRegister(dg *discordgo.Session, channel string, user string) (do *DiscordOutput) {
+	do = NewDiscordOutput(dg, 0xb40000, "REGISTER", "")
 	users, err := readCSV(usersFile)
 	if err != nil {
 		do.Description = ":warning: Error getting users."
-		log.Println("cmdQuote:", err)
+		log.Println("cmdRegister:", err)
 		return
 	}
 	for _, u := range users {
@@ -531,12 +582,20 @@ func cmdPing(dg *discordgo.Session, channel string, user string, args []string) 
 			}
 		}
 	}
-	do.Color = 0x3f82ef
-	// Distinguish between sending simply the word Pong or whatver word was passed as argument by the user.
-	if len(args) > 0 {
-		do.Description = args[0]
-	} else {
-		do.Description = "Pong."
+	// If the user is already a known user to the bot, we don't register it.
+	// Otherwise we add this new user as a registered user on the users file.
+	if isUser(strings.ToLower(user), users) {
+		do.Description = ":warning: You are already registered."
+		return
 	}
+	users = append(users, []string{strings.ToLower(user), "Europe/Berlin", "embeds", ""})
+	err = writeCSV(usersFile, users)
+	if err != nil {
+		do.Description = ":warning: Error registering user."
+		log.Println("cmdRegister:", err)
+		return
+	}
+	do.Color = 0x3f82ef
+	do.Description = "You have successfully registered."
 	return
 }
