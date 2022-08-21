@@ -110,6 +110,10 @@ func tskEvents(dg *discordgo.Session) {
 	var announced [5]string                    // Small buffer to hold recently announced events.
 	var index = 0                              // Index used to reference the buffer above.
 	var timeFormat = "2006-01-02 15:04:05 UTC" // Time format string used by the time package.
+	var mention string
+	var image string
+	do := NewDiscordOutput(dg, 0xb40000, ":alarm_clock: STARTING IN 5 MINUTES", "")
+	do.Embeds = true
 	// Loop that runs every minute opening the events CSV file and querying any event that starts within 5 minutes.
 	for {
 		time.Sleep(60 * time.Second)
@@ -134,30 +138,31 @@ func tskEvents(dg *discordgo.Session) {
 			index = 0
 		} else {
 			if !contains(announced[0:5], event[0]+" "+event[1]+" "+event[2]) {
-				output := &discordgo.MessageEmbed{}
-				output.Title = ":alarm_clock: STARTING IN 5 MINUTES"
-				output.Color = 0xb40000
-				category := &discordgo.MessageEmbedField{}
-				description := &discordgo.MessageEmbedField{}
-				category.Name = "Category:"
-				category.Value = event[0]
-				output.Fields = append(output.Fields, category)
-				description.Name = "Event:"
-				description.Value = fmt.Sprintf("%s %s", event[1], event[2])
-				output.Fields = append(output.Fields, description)
+				fields := []map[string]string{}
+				category := map[string]string{
+					"Name":  "Category:",
+					"Value": event[0],
+				}
+				description := map[string]string{
+					"Name":  "Event:",
+					"Value": fmt.Sprintf("%s %s", event[1], event[2]),
+				}
+				fields = append(fields, category, description)
 				if event[5] != "" {
-					image := &discordgo.MessageEmbedImage{}
-					image.URL = event[5]
-					output.Image = image
+					image = event[5]
 				}
 				if event[6] != "" {
-					roles := &discordgo.MessageEmbedField{}
-					roles.Name = "Roles:"
-					roles.Value = event[6]
-					output.Fields = append(output.Fields, roles)
-					dg.ChannelMessageSend(event[4], event[6])
+					roles := map[string]string{
+						"Name":  "Roles:",
+						"Value": event[6],
+					}
+					fields = append(fields, roles)
+					mention += event[6] + " "
 				}
-				dg.ChannelMessageSendEmbed(event[4], output)
+				dg.ChannelMessageSend(event[4], fmt.Sprintf("%sSTARTING IN 5 MINUTES: %s %s %s", mention, event[0], event[1], event[2]))
+				do.Fields = &fields
+				do.Image = &image
+				do.Send(event[4])
 				announced[index] = event[0] + " " + event[1] + " " + event[2]
 				index++
 			}
