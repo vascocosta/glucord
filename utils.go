@@ -57,7 +57,7 @@ func toStringMap(s [][]string, key int, value int) (result map[string]string, er
 // Small utility function that returns whether a user exists or not.
 func isUser(user string, users [][]string) bool {
 	for _, v := range users {
-		if strings.ToLower(user) == strings.ToLower(v[0]) {
+		if strings.EqualFold(user, v[0]) {
 			return true
 		}
 	}
