@@ -48,11 +48,11 @@ func isUser(user string, users [][]string) bool {
 // Small utility function that reads a CSV file and returns the data as slice of slice of strings.
 func readCSV(path string) (data [][]string, err error) {
 	f, err := os.Open(path)
-	defer f.Close()
 	if err != nil {
 		err = errors.New("Error opening CSV file: " + path + ".")
 		return
 	}
+	defer f.Close()
 	r := csv.NewReader(f)
 	data, err = r.ReadAll()
 	if err != nil {
@@ -65,11 +65,11 @@ func readCSV(path string) (data [][]string, err error) {
 // Small utility function that writes a slice of slice of strings to a CSV file.
 func writeCSV(path string, data [][]string) (err error) {
 	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
-	defer f.Close()
 	if err != nil {
 		err = errors.New("Error opening CSV file: " + path + ".")
 		return
 	}
+	defer f.Close()
 	w := csv.NewWriter(f)
 	err = w.WriteAll(data)
 	if err != nil {
