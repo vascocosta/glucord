@@ -85,7 +85,7 @@ func tskFeeds(dg *discordgo.Session) {
 					// We only want to show a feed item if itemTime > lastTime.
 					// Additionally we also want to make sure the feed item is no older than 4 hours.
 					// This assures only current news when restarting the bot or changing the feeds.
-					if itemTime.After(lastTime) && time.Since((*itemTime)) < 4*time.Duration(hns) {
+					if itemTime.After(lastTime) && time.Since((*itemTime)) < 8*time.Duration(hns) {
 						if strings.Contains(item.Link, "?") && strings.Contains(item.Link, "&") {
 							item.Link = strings.Split(item.Link, "?")[0]
 						}
