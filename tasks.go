@@ -175,6 +175,9 @@ func tskStats(dg *discordgo.Session) {
 	userCh := make(chan string)
 	saveCh := make(chan string)
 	dg.AddHandler(func(s *discordgo.Session, m *discordgo.MessageCreate) {
+		if m.Author.ID == s.State.User.ID {
+			return
+		}
 		userCh <- m.Author.ID
 	})
 	stats, err := readCSV(statsFile)
@@ -191,7 +194,11 @@ func tskStats(dg *discordgo.Session) {
 			found := false
 			for i, v := range stats {
 				if strings.EqualFold(user, v[0]) {
-					old, _ := strconv.Atoi(stats[i][1])
+					old, err := strconv.Atoi(stats[i][1])
+					if err != nil {
+						log.Println("tskStats:", err)
+						return
+					}
 					stats[i][1] = fmt.Sprintf("%d", old+1)
 					found = true
 				}

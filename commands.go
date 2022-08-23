@@ -23,11 +23,14 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
+	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/wcharczuk/go-chart"
 )
 
 // Slash commands are defined within a single var block instead of top level functions like regular commands.
@@ -598,4 +601,33 @@ func cmdRegister(dg *discordgo.Session, channel string, user string) (do *Discor
 	do.Color = 0x3f82ef
 	do.Description = "You have successfully registered."
 	return
+}
+
+func cmdStats(dg *discordgo.Session, channel string, user string) {
+	do := NewDiscordOutput(dg, 0xb40000, "STATS", "")
+	stats, err := readCSV(statsFile)
+	if err != nil {
+		log.Println("tskStats:", err)
+		return
+	}
+	var values []chart.Value
+	for _, v := range stats {
+		valueFloat, _ := strconv.ParseFloat(v[1], 64)
+		member, _ := dg.GuildMember(guild, v[0])
+		label := member.User.Username + " - " + v[1]
+		values = append(values, chart.Value{Value: valueFloat, Label: label})
+	}
+	pie := chart.PieChart{
+		Title:      "Total Messages",
+		TitleStyle: chart.StyleShow(),
+		Width:      700,
+		Height:     800,
+		Values:     values,
+	}
+	f, _ := os.Create("messages.png")
+	pie.Render(chart.PNG, f)
+	f.Close()
+	f, _ = os.Open("messages.png")
+	do.File(channel, "messages.png", f, "**STATS**")
+	f.Close()
 }

@@ -20,6 +20,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 
 	"github.com/bwmarrin/discordgo"
 )
@@ -103,6 +104,10 @@ func (do *DiscordOutput) Embed() (embed *discordgo.MessageEmbed) {
 		embed.Image = embedImage
 	}
 	return
+}
+
+func (do *DiscordOutput) File(channel string, name string, r io.Reader, message string) {
+	do.Session.ChannelFileSendWithMessage(channel, message, name, r)
 }
 
 func (do *DiscordOutput) Text() (text string) {
