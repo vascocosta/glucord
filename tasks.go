@@ -21,6 +21,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"strconv"
 	"strings"
 	"time"
 
@@ -165,6 +166,44 @@ func tskEvents(dg *discordgo.Session) {
 				do.Send(event[4])
 				announced[index] = event[0] + " " + event[1] + " " + event[2]
 				index++
+			}
+		}
+	}
+}
+
+func tskStats(dg *discordgo.Session) {
+	userCh := make(chan string)
+	saveCh := make(chan string)
+	dg.AddHandler(func(s *discordgo.Session, m *discordgo.MessageCreate) {
+		userCh <- m.Author.ID
+	})
+	stats, err := readCSV(statsFile)
+	if err != nil {
+		log.Println("tskStats:", err)
+		return
+	}
+	timer := time.AfterFunc(300*time.Second, func() {
+		saveCh <- "SAVE"
+	})
+	for {
+		select {
+		case user := <-userCh:
+			found := false
+			for i, v := range stats {
+				if strings.EqualFold(user, v[0]) {
+					old, _ := strconv.Atoi(stats[i][1])
+					stats[i][1] = fmt.Sprintf("%d", old+1)
+					found = true
+				}
+			}
+			if !found {
+				stats = append(stats, []string{user, "1"})
+			}
+		case <-saveCh:
+			timer.Reset(300 * time.Second)
+			err := writeCSV(statsFile, stats)
+			if err != nil {
+				log.Println("tskStats:", err)
 			}
 		}
 	}

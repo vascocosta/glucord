@@ -43,6 +43,7 @@ const (
 	feedsFile     = "feeds.csv"   // Full path to the feeds file.
 	pluginsFolder = "./plugins/"  // Full path to the plugins folder.
 	quotesFile    = "quotes.csv"  // Full path to the quotes file.
+	statsFile     = "stats.csv"   // Full path to the stats file.
 	usageFile     = "usage.csv"   // Full path to the usage file.
 	usersFile     = "users.csv"   // Full path to the users file.
 	hns           = 3600000000000 // Number of nanoseconds in one hour.
@@ -127,8 +128,9 @@ func main() {
 	// Launch some background tasks that run concurrently with the main goroutine of the bot.
 	// These functions need to keep running in the background the whole time to perform work.
 	// While bot commands are user triggered and short lived these tasks happen periodically.
-	go tskFeeds(dg)
 	go tskEvents(dg)
+	go tskFeeds(dg)
+	go tskStats(dg)
 	// Keep a record of all the slash commands defined in the commands variable using a slice.
 	// Register a slash command on Discord for every command defined in the commands variable.
 	registeredCommands := make([]*discordgo.ApplicationCommand, len(commands))
