@@ -69,6 +69,10 @@ func (do *DiscordOutput) Send(channel string) {
 			embedImage.URL = *do.Image
 			output.Image = embedImage
 		}
+		footer := &discordgo.MessageEmbedFooter{}
+		footer.IconURL = "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2d/Go_gopher_favicon.svg/2048px-Go_gopher_favicon.svg.png"
+		footer.Text = "Powered by Golang!"
+		output.Footer = footer
 		do.Session.ChannelMessageSendEmbed(channel, output)
 	} else {
 		if do.Fields != nil {
@@ -103,6 +107,10 @@ func (do *DiscordOutput) Embed() (embed *discordgo.MessageEmbed) {
 		embedImage.URL = *do.Image
 		embed.Image = embedImage
 	}
+	footer := &discordgo.MessageEmbedFooter{}
+	footer.IconURL = "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2d/Go_gopher_favicon.svg/2048px-Go_gopher_favicon.svg.png"
+	footer.Text = "Powered by Golang!"
+	embed.Footer = footer
 	return
 }
 
