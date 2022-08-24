@@ -501,6 +501,15 @@ func cmdPlugin(name string, dg *discordgo.Session, channel string, user string, 
 	}
 	do.Color = 0x3f82ef
 	do.Description = string(cmdOutput)
+	split := strings.Split(string(cmdOutput), "\n")
+	if len(split) > 0 {
+		if strings.HasPrefix(split[0], "GLUCORD-PLUGIN-HEADER:") {
+			do.Description = strings.Join(split[1:], "\n")
+			if strings.Contains(split[0], "EMBEDS=OFF") {
+				do.Embeds = false
+			}
+		}
+	}
 	do.Send(channel)
 }
 
