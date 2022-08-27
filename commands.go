@@ -459,7 +459,7 @@ func cmdPing(dg *discordgo.Session, channel string, user string, args []string) 
 
 // The plugin command receives a name, a Discord session pointer, a channel, a user and an arguments slice of strings.
 // It then tries to execute the given plugin name if a file with that name is found on the plugins folder.
-func cmdPlugin(name string, dg *discordgo.Session, channel string, user string, args []string) {
+func cmdPlugin(name string, dg *discordgo.Session, channel string, user string, args []string, finishedCh chan bool) {
 	var cmd *exec.Cmd
 	do := NewDiscordOutput(dg, 0xb40000, strings.ToUpper(name), "")
 	users, err := readCSV(usersFile)
@@ -479,6 +479,10 @@ func cmdPlugin(name string, dg *discordgo.Session, channel string, user string, 
 	// We check if the command is a plugin or not by checking if a file with that name exists.
 	// If it doesn't exist this isn't a valid plugin and therefore we must stop the execution.
 	if !fileExists(pluginsFolder + name) {
+		select {
+		case finishedCh <- true:
+		default:
+		}
 		do.Description = ":warning: Unkown command or plugin."
 		do.Send(channel)
 		return
@@ -509,6 +513,10 @@ func cmdPlugin(name string, dg *discordgo.Session, channel string, user string, 
 				do.Embeds = false
 			}
 		}
+	}
+	select {
+	case finishedCh <- true:
+	default:
 	}
 	do.Send(channel)
 }

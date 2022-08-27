@@ -25,6 +25,7 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/bwmarrin/discordgo"
 )
@@ -79,7 +80,15 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		case "s", "stats":
 			cmdStats(s, command.Channel, command.User)
 		default:
-			go cmdPlugin(strings.ToLower(command.Name), s, command.Channel, command.User, command.Args)
+			finishedCh := make(chan bool)
+			go cmdPlugin(strings.ToLower(command.Name), s, command.Channel, command.User, command.Args, finishedCh)
+			go func() {
+				select {
+				case <-finishedCh:
+				case <-time.After(3 * time.Second):
+					s.ChannelMessageSend(command.Channel, ":warning: Command is taking long to run... Please wait.")
+				}
+			}()
 			return
 		}
 		// If the pointer to DiscordOutput isn't nil (built-in command) send the output here.
