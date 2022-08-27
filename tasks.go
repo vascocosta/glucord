@@ -158,7 +158,7 @@ func tskEvents(dg *discordgo.Session) {
 						"Value": event[6],
 					}
 					fields = append(fields, roles)
-					mention += event[6] + " "
+					mention = event[6] + " "
 				}
 				dg.ChannelMessageSend(event[4], fmt.Sprintf("%sSTARTING IN 5 MINUTES: %s %s %s", mention, event[0], event[1], event[2]))
 				do.Fields = &fields
