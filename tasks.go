@@ -111,13 +111,13 @@ func tskEvents(dg *discordgo.Session) {
 	var announced [5]string                    // Small buffer to hold recently announced events.
 	var index = 0                              // Index used to reference the buffer above.
 	var timeFormat = "2006-01-02 15:04:05 UTC" // Time format string used by the time package.
-	var mention string
-	var image string
-	do := NewDiscordOutput(dg, 0xb40000, ":alarm_clock: STARTING IN 5 MINUTES", "")
-	do.Embeds = true
 	// Loop that runs every minute opening the events CSV file and querying any event that starts within 5 minutes.
 	for {
 		time.Sleep(60 * time.Second)
+		mention := ""
+		image := ""
+		do := NewDiscordOutput(dg, 0xb40000, ":alarm_clock: STARTING IN 5 MINUTES", "")
+		do.Embeds = true
 		event, err := findNext("any", "any")
 		if err != nil {
 			log.Println("tskEvents:", err)
