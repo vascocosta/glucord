@@ -631,7 +631,10 @@ func cmdStats(dg *discordgo.Session, channel string, user string) {
 	for _, v := range stats {
 		valueFloat, _ := strconv.ParseFloat(v[1], 64)
 		member, _ := dg.GuildMember(guild, v[0])
-		label := member.User.Username + " - " + v[1]
+		label := ""
+		if valueFloat > 40 {
+			label = member.User.Username + " - " + v[1]
+		}
 		values = append(values, chart.Value{Value: valueFloat, Label: label})
 	}
 	pie := chart.PieChart{
