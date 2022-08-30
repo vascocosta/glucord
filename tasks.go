@@ -215,3 +215,19 @@ func tskStats(dg *discordgo.Session) {
 		}
 	}
 }
+
+// The tskWrite function runs in the background as a goroutine that reads messages from an input file and outputs them.
+func tskWrite(dg *discordgo.Session) {
+	for {
+		time.Sleep(1 * time.Second)
+		message, err := readIn(inputFile)
+		if err != nil {
+			log.Println("tskWrite:", err)
+		}
+		// We need to make sure the message starts with a # prefixed word and use that as a target channel.
+		splitMessage := strings.Split(message, " ")
+		if len(splitMessage) > 1 {
+			dg.ChannelMessageSend(splitMessage[0], strings.Join(splitMessage[1:], " "))
+		}
+	}
+}

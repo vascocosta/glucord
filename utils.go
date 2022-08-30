@@ -62,6 +62,18 @@ func readCSV(path string) (data [][]string, err error) {
 	return
 }
 
+// Small utility function that reads messages from an input file.
+func readIn(path string) (message string, err error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		err = errors.New("Error reading message from: " + path + ".")
+		return
+	}
+	message = string(data)
+	os.Truncate(path, 0)
+	return
+}
+
 // Small utility function that writes a slice of slice of strings to a CSV file.
 func writeCSV(path string, data [][]string) (err error) {
 	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)

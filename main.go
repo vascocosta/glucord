@@ -42,6 +42,7 @@ const (
 	configFile    = "config.csv"  // Full path to the config file.
 	eventsFile    = "events.csv"  // Full path to the events file.
 	feedsFile     = "feeds.csv"   // Full path to the feeds file.
+	inputFile     = "input.txt"   // Full path to the input file.
 	pluginsFolder = "./plugins/"  // Full path to the plugins folder.
 	quotesFile    = "quotes.csv"  // Full path to the quotes file.
 	statsFile     = "stats.csv"   // Full path to the stats file.
@@ -142,6 +143,7 @@ func main() {
 	go tskEvents(dg)
 	go tskFeeds(dg)
 	go tskStats(dg)
+	go tskWrite(dg)
 	// Keep a record of all the slash commands defined in the commands variable using a slice.
 	// Register a slash command on Discord for every command defined in the commands variable.
 	registeredCommands := make([]*discordgo.ApplicationCommand, len(commands))
