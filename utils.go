@@ -114,3 +114,19 @@ func fileExists(filename string) bool {
 	}
 	return !info.IsDir()
 }
+
+func lookupAlias(search string) (result string, err error) {
+	alias, err := readCSV(aliasFile)
+	if err != nil {
+		err = errors.New("alias not found")
+		return
+	}
+	for _, v := range alias {
+		if strings.EqualFold(search, v[0]) {
+			result = v[1]
+			return
+		}
+	}
+	err = errors.New("alias not found")
+	return
+}

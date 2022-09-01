@@ -379,32 +379,18 @@ func cmdNext(dg *discordgo.Session, channel string, user string, search string) 
 	// Retrieve the next event matching category or session criteria.
 	// Else, simply retrieve the next event from any category or session type.
 	if search != "" {
-		switch strings.ToLower(search) {
-		case "f1", "formula1", "formula 1":
-			event, err = findNext("[Formula 1]", "any")
-		case "f2", "formula2", "formula 2":
-			event, err = findNext("[Formula 2]", "any")
-		case "f3", "formula3", "formula 3":
-			event, err = findNext("[Formula 3]", "any")
-		case "q", "quali", "qualy", "qualifying",
-			"f1 quali", "f1 qualy", "f1quali", "f1qualy", "f1 qualifying",
-			"formula1 quali", "formula1 qualy", "formula1 qualifying":
-			event, err = findNext("[Formula 1]", "Qualifying")
-		case "r", "race", "f1 race", "f1race", "formula 1 race":
-			event, err = findNext("[Formula 1]", "Race")
-		case "s", "sprint", "sprint race",
-			"f1 sprint", "f1sprint", "f1 sprint race",
-			"formula1 sprint", "formula1 sprint race":
-			event, err = findNext("[Formula 1]", "Sprint")
-		default:
+		result := ""
+		result, err = lookupAlias(search)
+		if err != nil {
 			event, err = findNext(search, "any")
+		} else {
+			event, err = findNext(result, "any")
 		}
 	} else {
 		event, err = findNext("any", "any")
 	}
 	if err != nil {
 		do.Description = ":warning: No event found."
-		log.Println("cmdNext:", err)
 		return
 	}
 	// Parse the time of the event, calculate time delta, do some formatting and finally show the results.

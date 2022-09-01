@@ -38,6 +38,7 @@ var (
 )
 
 const (
+	aliasFile     = "alias.csv"   // Full path to the alias file.
 	answersFile   = "answers.csv" // Full path to the answers file.
 	configFile    = "config.csv"  // Full path to the config file.
 	eventsFile    = "events.csv"  // Full path to the events file.
