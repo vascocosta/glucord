@@ -39,6 +39,18 @@ import (
 var (
 	commands = []*discordgo.ApplicationCommand{
 		{
+			Name:        "ask",
+			Description: "Get a random answer for a question.",
+			Options: []*discordgo.ApplicationCommandOption{
+				{
+					Type:        discordgo.ApplicationCommandOptionString,
+					Name:        "question",
+					Description: "The question you want to ask the bot.",
+					Required:    true,
+				},
+			},
+		},
+		{
 			Name:        "help",
 			Description: "Show help messages for each command.",
 			Options: []*discordgo.ApplicationCommandOption{
@@ -80,6 +92,30 @@ var (
 		},
 	}
 	commandHandlers = map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate){
+		"ask": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			var content string
+			var embed *discordgo.MessageEmbed
+			var embeds []*discordgo.MessageEmbed
+			var args []string
+			options := i.ApplicationCommandData().Options
+			for _, v := range options {
+				args = append(args, v.Value.(string))
+			}
+			do := cmdAsk(s, "", i.Member.User.ID, args)
+			if do.Embeds {
+				embed = do.Embed()
+				embeds = append(embeds, embed)
+			} else {
+				content = do.Text()
+			}
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: content,
+					Embeds:  embeds,
+				},
+			})
+		},
 		"help": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 			var content string
 			var embed *discordgo.MessageEmbed
@@ -265,7 +301,7 @@ func cmdAsk(dg *discordgo.Session, channel string, user string, args []string) (
 		rand.Seed(time.Now().UnixNano())
 		index := rand.Intn(len(answers))
 		do.Color = 0x3f82ef
-		do.Description = answers[index][0]
+		do.Description = fmt.Sprintf("**Question:** %s\n\n**Answer:** %s", strings.Join(args, " "), answers[index][0])
 		// Otherwise, if we get here, it means the user didn't use the command correctly.
 		// Ttherefore we show a usage message on the channel.
 	} else {
