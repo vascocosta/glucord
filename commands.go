@@ -517,7 +517,9 @@ func cmdPlugin(name string, dg *discordgo.Session, channel string, user string, 
 	if !fileExists(pluginsFolder + name) {
 		select {
 		case finishedCh <- true:
-		default:
+			// The plugin doesn't exist, but we still send true to the finished channel.
+		case <-time.After(1 * time.Second):
+			// If the main thread doesn't read the channel, then timeout after 1 second.
 		}
 		do.Description = ":warning: Unkown command or plugin."
 		do.Send(channel)
@@ -534,6 +536,12 @@ func cmdPlugin(name string, dg *discordgo.Session, channel string, user string, 
 	}
 	cmdOutput, err := cmd.CombinedOutput()
 	if err != nil {
+		select {
+		case finishedCh <- true:
+			// The plugin had a problem, but we still send true to the finished channel.
+		case <-time.After(1 * time.Second):
+			// If the main thread doesn't read the channel, then timeout after 1 second.
+		}
 		do.Description = ":warning: Error executing plugin."
 		do.Send(channel)
 		log.Println("cmdPlugin:", err)
@@ -552,7 +560,9 @@ func cmdPlugin(name string, dg *discordgo.Session, channel string, user string, 
 	}
 	select {
 	case finishedCh <- true:
-	default:
+		// The plugin finished with success so we send true to the finished channel.
+	case <-time.After(1 * time.Second):
+		// If the main thread doesn't read the channel, then timeout after 1 second.
 	}
 	do.Send(channel)
 }

@@ -82,14 +82,16 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 			cmdStats(s, command.Channel, command.User)
 		default:
 			finishedCh := make(chan bool)
-			go cmdPlugin(strings.ToLower(command.Name), s, command.Channel, command.User, command.Args, finishedCh)
 			go func() {
 				select {
 				case <-finishedCh:
+					// We received true from the finished channel, so we do nothing.
 				case <-time.After(3 * time.Second):
+					// We didn't receive from the finished channel within 3 seconds.
 					s.ChannelMessageSend(command.Channel, ":warning: Command is taking long to run... Please wait.")
 				}
 			}()
+			go cmdPlugin(strings.ToLower(command.Name), s, command.Channel, command.User, command.Args, finishedCh)
 			return
 		}
 		// If the pointer to DiscordOutput isn't nil (built-in command) send the output here.
