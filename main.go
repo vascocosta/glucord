@@ -93,7 +93,6 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 				}
 			}()
 			go cmdPlugin(strings.ToLower(command.Name), s, command.Channel, command.User, command.Args, finishedCh)
-			return
 		}
 		// If the pointer to DiscordOutput isn't nil (built-in command) send the output here.
 		// This is to prevent access to methods on a nil pointer (cmdPlugin does not set do).

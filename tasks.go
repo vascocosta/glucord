@@ -171,6 +171,7 @@ func tskEvents(dg *discordgo.Session) {
 	}
 }
 
+// The tskStats function runs in the background as a goroutine gathering statistics.
 func tskStats(dg *discordgo.Session) {
 	userCh := make(chan string)
 	saveCh := make(chan string)
@@ -188,6 +189,7 @@ func tskStats(dg *discordgo.Session) {
 	timer := time.AfterFunc(300*time.Second, func() {
 		saveCh <- "SAVE"
 	})
+	// Loop that runs a select on the two channels, one to gather stats, the other to save those stats to a file.
 	for {
 		select {
 		case user := <-userCh:
