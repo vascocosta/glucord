@@ -91,6 +91,18 @@ var (
 			Name:        "register",
 			Description: "Register your user on the bot.",
 		},
+		{
+			Name:        "weather",
+			Description: "Show the current weather for a locattion.",
+			Options: []*discordgo.ApplicationCommandOption{
+				{
+					Type:        discordgo.ApplicationCommandOptionString,
+					Name:        "location",
+					Description: "Location for which you want to fetch the weather.",
+					Required:    false,
+				},
+			},
+		},
 	}
 	commandHandlers = map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate){
 		"ask": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
@@ -208,6 +220,30 @@ var (
 					Content: content,
 					Embeds:  embeds,
 					Flags:   1 << 6,
+				},
+			})
+		},
+		"weather": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			var content string
+			var embed *discordgo.MessageEmbed
+			var embeds []*discordgo.MessageEmbed
+			var args []string
+			options := i.ApplicationCommandData().Options
+			for _, v := range options {
+				args = append(args, v.Value.(string))
+			}
+			do := cmdWeather(s, "", i.Member.User.ID, args)
+			if do.Embeds {
+				embed = do.Embed()
+				embeds = append(embeds, embed)
+			} else {
+				content = do.Text()
+			}
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: content,
+					Embeds:  embeds,
 				},
 			})
 		},
