@@ -3,6 +3,7 @@ module github.com/vascocosta/glucord
 go 1.18
 
 require (
+	github.com/briandowns/openweathermap v0.19.0
 	github.com/bwmarrin/discordgo v0.25.0
 	github.com/mmcdole/gofeed v1.1.3
 	github.com/wcharczuk/go-chart v2.0.1+incompatible

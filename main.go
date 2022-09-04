@@ -35,6 +35,7 @@ var (
 	token        = ""  // Token used to authenticate the bot with Discord.
 	guild        = ""  // Guild ID.
 	feedInterval = 300 // Feed poll interval in seconds.
+	owmAPIKey    = ""  // OWM API key.
 )
 
 const (
@@ -49,6 +50,7 @@ const (
 	statsFile     = "stats.csv"   // Full path to the stats file.
 	usageFile     = "usage.csv"   // Full path to the usage file.
 	usersFile     = "users.csv"   // Full path to the users file.
+	weatherFile   = "weather.csv" // Full path to the weather file.
 	hns           = 3600000000000 // Number of nanoseconds in one hour.
 )
 
@@ -81,6 +83,8 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 			do = cmdRegister(s, command.Channel, command.User)
 		case "s", "stats":
 			cmdStats(s, command.Channel, command.User)
+		case "w", "weather":
+			do = cmdWeather(s, command.Channel, command.User, command.Args)
 		default:
 			finishedCh := make(chan bool)
 			go func() {
@@ -118,6 +122,7 @@ func main() {
 	token = config[0][1]
 	guild = config[0][2]
 	feedInterval, _ = strconv.Atoi(config[0][3])
+	owmAPIKey = config[0][4]
 	dg, err := discordgo.New("Bot " + token)
 	if err != nil {
 		log.Println("main:", err)

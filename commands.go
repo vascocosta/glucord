@@ -29,6 +29,7 @@ import (
 	"strings"
 	"time"
 
+	owm "github.com/briandowns/openweathermap"
 	"github.com/bwmarrin/discordgo"
 	"github.com/wcharczuk/go-chart"
 )
@@ -682,4 +683,140 @@ func cmdStats(dg *discordgo.Session, channel string, user string) {
 	f, _ = os.Open("messages.png")
 	do.File(channel, "messages.png", f, "**STATS**")
 	f.Close()
+}
+
+// The weather command receives a user and an arguments slice of strings.
+// It then shows the current weather for a given location on the channel using the OpenWeatherMap API.
+func cmdWeather(dg *discordgo.Session, channel string, user string, args []string) (do *DiscordOutput) {
+	do = NewDiscordOutput(dg, 0xb40000, "WEATHER", "")
+	users, err := readCSV(usersFile)
+	if err != nil {
+		do.Description = ":warning: Error getting users."
+		log.Println("cmdWeather:", err)
+		return
+	}
+	for _, u := range users {
+		if strings.EqualFold(u[0], user) {
+			if strings.Contains(strings.ToLower(u[2]), "embeds") {
+				do.Embeds = true
+			}
+		}
+	}
+	weather, err := readCSV(weatherFile)
+	if err != nil {
+		do.Description = ":warning: Error getting weather settings."
+		log.Println("cmdWeather:", err)
+		return
+	}
+	location := ""
+	tempUnits := "C"
+	windUnits := "m/s"
+	// Neither a location nor temperature unit were provided as an argument to the command.
+	// So we must get the location and temperature unit for the user from the weather file.
+	// If a user in the weather file matches user, we get its location and temperature unit.
+	if len(args) == 0 {
+		for _, v := range weather {
+			if strings.ToLower(v[0]) == strings.ToLower(user) {
+				tempUnits = strings.ToUpper(v[1])
+				location = v[2]
+			}
+		}
+		// A temperature unit was provided as an argument to the command, we must update the setting.
+		// However, we must first check if the user already has a location set on the weather file.
+		// If so, we update the user units, otherwise we ask him to get the weather for a location.
+		// This is so that the user gets registered on the weather file before we can set a location.
+	} else if len(args) == 1 && (strings.ToLower(args[0]) == "c" || strings.ToLower(args[0]) == "f") {
+		var unitsUpdated bool
+		for i, v := range weather {
+			// User with a location on the weather database.
+			if strings.ToLower(v[0]) == strings.ToLower(user) {
+				unitsUpdated = true
+				weather[i][1] = strings.ToLower(args[0])
+			}
+		}
+		if !unitsUpdated {
+			do.Description = ":warning: Get the weather for some location before setting the units."
+			return
+		}
+		err = writeCSV(weatherFile, weather)
+		if err != nil {
+			do.Description = ":warning: Error storing weather units."
+			log.Println("cmdWeather:", err)
+			return
+		}
+		do.Description = "Temperature units updated."
+		return
+		// If we reach this point, a location was provided as an argument to the command.
+		// If the user already exists, we update his location, otherwise we register him.
+	} else {
+		var newUser bool = true
+		location = strings.Join(args, " ")
+		for i, v := range weather {
+			// User with a location on the weather database.
+			if strings.ToLower(v[0]) == strings.ToLower(user) {
+				newUser = false
+				weather[i][2] = location
+			}
+		}
+		if newUser {
+			// User without a location on the weather database.
+			weather = append(weather, []string{user, "c", location})
+		}
+		err = writeCSV(weatherFile, weather)
+		if err != nil {
+			do.Description = ":warning: Error storing weather location."
+			log.Println("cmdWeather:", err)
+			return
+		}
+	}
+	if location == "" {
+		do.Description = ":warning: Please provide a location as argument."
+		return
+	}
+	if tempUnits == "F" {
+		windUnits = "mph"
+	}
+	// Finally we get the current weather at a location using the temperature units.
+	// Then we display a nicely formatted and compact weather string on the channel.
+	w, err := owm.NewCurrent(tempUnits, "en", owmAPIKey)
+	if err != nil {
+		do.Description = ":warning: Error fetching weather."
+		log.Println("cmdWeather:", err)
+		return
+	}
+	err = w.CurrentByName(location)
+	if err != nil {
+		do.Description = ":warning: Could not fetch weather for that location."
+		log.Println("cmdWeather:", err)
+		return
+	}
+	icon := ""
+	switch {
+	case strings.Contains(strings.ToLower(w.Weather[0].Description), "clear sky"):
+		icon = ":sunny:"
+	case strings.Contains(strings.ToLower(w.Weather[0].Description), "few clouds"):
+		icon = ":white_sun_small_cloud:"
+	case strings.Contains(strings.ToLower(w.Weather[0].Description), "broken clouds"):
+		icon = ":white_sun_cloud:"
+	case strings.Contains(strings.ToLower(w.Weather[0].Description), "scattered clouds"):
+		icon = ":white_sun_cloud:"
+	case strings.Contains(strings.ToLower(w.Weather[0].Description), "overcast clouds"):
+		icon = ":cloud:"
+	case strings.Contains(strings.ToLower(w.Weather[0].Description), "rain"):
+		icon = ":cloud_rain:"
+	case strings.Contains(strings.ToLower(w.Weather[0].Description), "fog"):
+		icon = ":fog:"
+	}
+	icon += " " + w.Weather[0].Description
+	do.Description =
+		fmt.Sprintf("**%s**\n\n%s\n\n:thermometer: %0.1f%s\n:droplet: %d%%\n:arrow_down: %0.1fhPa\n:triangular_flag_on_post: %0.1f%s",
+			w.Name,
+			icon,
+			w.Main.Temp,
+			tempUnits,
+			w.Main.Humidity,
+			w.Main.Pressure,
+			w.Wind.Speed,
+			windUnits)
+	return
 }
