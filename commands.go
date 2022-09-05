@@ -849,7 +849,7 @@ func cmdWeather(dg *discordgo.Session, channel string, user string, args []strin
 	// If a user in the weather file matches user, we get its location and temperature unit.
 	if len(args) == 0 {
 		for _, v := range weather {
-			if strings.ToLower(v[0]) == strings.ToLower(user) {
+			if strings.EqualFold(v[0], user) {
 				tempUnits = strings.ToUpper(v[1])
 				location = v[2]
 			}
@@ -862,7 +862,7 @@ func cmdWeather(dg *discordgo.Session, channel string, user string, args []strin
 		var unitsUpdated bool
 		for i, v := range weather {
 			// User with a location on the weather database.
-			if strings.ToLower(v[0]) == strings.ToLower(user) {
+			if strings.EqualFold(v[0], user) {
 				unitsUpdated = true
 				weather[i][1] = strings.ToLower(args[0])
 			}
@@ -886,7 +886,7 @@ func cmdWeather(dg *discordgo.Session, channel string, user string, args []strin
 		location = strings.Join(args, " ")
 		for i, v := range weather {
 			// User with a location on the weather database.
-			if strings.ToLower(v[0]) == strings.ToLower(user) {
+			if strings.EqualFold(v[0], user) {
 				newUser = false
 				weather[i][2] = location
 			}
