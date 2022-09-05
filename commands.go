@@ -689,6 +689,103 @@ func cmdRegister(dg *discordgo.Session, channel string, user string) (do *Discor
 	return
 }
 
+// The roles command receives a Discord session pointer, a channel, a user and an arguments slice of strings.
+// It then shows a list of added and available roles or allows the user to add or remove roles on the server.
+func cmdRoles(dg *discordgo.Session, channel string, user string, args []string) (do *DiscordOutput) {
+	do = NewDiscordOutput(dg, 0xb40000, "ROLES", "")
+	users, err := readCSV(usersFile)
+	if err != nil {
+		do.Description = ":warning: Error getting users."
+		log.Println("cmdRoles:", err)
+		return
+	}
+	for _, u := range users {
+		if strings.EqualFold(u[0], user) {
+			if strings.Contains(strings.ToLower(u[2]), "embeds") {
+				do.Embeds = true
+			}
+		}
+	}
+	roles, err := readCSV(rolesFile)
+	if err != nil {
+		do.Description = ":warning: Error getting roles."
+		log.Println("cmdRoles:", err)
+		return
+	}
+	guildRoles, err := dg.GuildRoles(guild)
+	if err != nil {
+		do.Description = ":warning: Error getting guild roles."
+		log.Println("cmdRoles:", err)
+		return
+	}
+	member, err := dg.GuildMember(guild, user)
+	if err != nil {
+		do.Description = ":warning: Error getting guild member."
+		log.Println("cmdRoles:", err)
+		return
+	}
+	// We have two possibilities, either the user passes no arguments or else, we consider only the first one.
+	// The first branch doesn't have early exits, so we use the return at the end of the function to return the output.
+	// The second branch though has several possible early exists, so we use local returns to return the output.
+	// Except at the very end, where nothing else will run, so we can use the return at the end of the function.
+	if len(args) == 0 {
+		do.Color = 0x3f82ef
+		do.Description += "**Current roles you are added to:**\n\n"
+		for _, v := range member.Roles {
+			for _, w := range guildRoles {
+				if strings.EqualFold(v, w.ID) {
+					do.Description += w.Name + "\n"
+				}
+			}
+		}
+		do.Description += "\n**Available roles that you can add/remove:**\n\n"
+		for _, v := range roles {
+			do.Description += v[0] + "\n"
+		}
+		do.Description += "\n**To add/remove roles call this command with a role name.**\n\nExample: !roles space_notifications"
+	} else {
+		valid := false
+		for _, v := range roles {
+			if strings.EqualFold(args[0], v[0]) {
+				valid = true
+			}
+		}
+		if !valid {
+			do.Description = ":warning: This is not one of the available roles."
+			return
+		}
+		for _, v := range guildRoles {
+			if strings.EqualFold(args[0], v.Name) {
+				for _, w := range member.Roles {
+					if strings.EqualFold(v.ID, w) {
+						// The user is already assigned to this role.
+						err := dg.GuildMemberRoleRemove(guild, user, v.ID)
+						if err != nil {
+							do.Description = ":warning: Error removing role."
+							log.Println("cmdRoles:", err)
+							return
+						}
+						do.Description = fmt.Sprintf("You were successfully removed from the %s role.", v.Name)
+						return
+					}
+				}
+				// The user is not assigned to this role yet.
+				err := dg.GuildMemberRoleAdd(guild, user, v.ID)
+				if err != nil {
+					do.Description = ":warning: Error adding role."
+					log.Println("cmdRoles:", err)
+					return
+				}
+				do.Description = fmt.Sprintf("You were successfully added to the %s role.", v.Name)
+				return
+			}
+		}
+		// We only get here, if one of the allowed roles from the CSV file was not found on the server.
+		do.Description = fmt.Sprintf("The %s role doesn't exist on the server.", args[0])
+	}
+	return
+}
+
 func cmdStats(dg *discordgo.Session, channel string, user string) {
 	do := NewDiscordOutput(dg, 0xb40000, "STATS", "")
 	stats, err := readCSV(statsFile)
@@ -844,6 +941,7 @@ func cmdWeather(dg *discordgo.Session, channel string, user string, args []strin
 		icon = ":fog:"
 	}
 	icon += " " + w.Weather[0].Description
+	do.Color = 0x3f82ef
 	do.Description =
 		fmt.Sprintf("**%s**\n\n%s\n\n:thermometer: %0.1f%s\n:droplet: %d%%\n:arrow_down: %0.1fhPa\n:triangular_flag_on_post: %0.1f%s",
 			w.Name,

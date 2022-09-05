@@ -47,6 +47,7 @@ const (
 	inputFile     = "input.txt"   // Full path to the input file.
 	pluginsFolder = "./plugins/"  // Full path to the plugins folder.
 	quotesFile    = "quotes.csv"  // Full path to the quotes file.
+	rolesFile     = "roles.csv"   // Full path to the roles file.
 	statsFile     = "stats.csv"   // Full path to the stats file.
 	usageFile     = "usage.csv"   // Full path to the usage file.
 	usersFile     = "users.csv"   // Full path to the users file.
@@ -81,6 +82,8 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 			do = cmdQuote(s, command.Channel, command.User, command.Args)
 		case "r", "register":
 			do = cmdRegister(s, command.Channel, command.User)
+		case "ro", "roles":
+			do = cmdRoles(s, command.Channel, command.User, command.Args)
 		case "s", "stats":
 			cmdStats(s, command.Channel, command.User)
 		case "w", "weather":
