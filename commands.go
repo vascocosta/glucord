@@ -786,6 +786,8 @@ func cmdRoles(dg *discordgo.Session, channel string, user string, args []string)
 	return
 }
 
+// The stats command receives a Discord session pointer, a channel, and a user.
+// It then reads some general user stats periodically stored and displays them.
 func cmdStats(dg *discordgo.Session, channel string, user string) {
 	do := NewDiscordOutput(dg, 0xb40000, "STATS", "")
 	stats, err := readCSV(statsFile)
@@ -793,6 +795,7 @@ func cmdStats(dg *discordgo.Session, channel string, user string) {
 		log.Println("tskStats:", err)
 		return
 	}
+	// Go through all the stats lines and append each one as a chart value.
 	var values []chart.Value
 	for _, v := range stats {
 		valueFloat, _ := strconv.ParseFloat(v[1], 64)
@@ -818,7 +821,7 @@ func cmdStats(dg *discordgo.Session, channel string, user string) {
 	f.Close()
 }
 
-// The weather command receives a user and an arguments slice of strings.
+// The weather command receives a Discord session pointer, a channel, a user and an arguments slice of strings.
 // It then shows the current weather for a given location on the channel using the OpenWeatherMap API.
 func cmdWeather(dg *discordgo.Session, channel string, user string, args []string) (do *DiscordOutput) {
 	do = NewDiscordOutput(dg, 0xb40000, "WEATHER", "")
