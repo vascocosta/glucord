@@ -92,6 +92,18 @@ var (
 			Description: "Register your user on the bot.",
 		},
 		{
+			Name:        "roles",
+			Description: "Add/remove user to/from server roles.",
+			Options: []*discordgo.ApplicationCommandOption{
+				{
+					Type:        discordgo.ApplicationCommandOptionString,
+					Name:        "role",
+					Description: "The name of the role you and to add/remove.",
+					Required:    false,
+				},
+			},
+		},
+		{
 			Name:        "weather",
 			Description: "Show the current weather for a locattion.",
 			Options: []*discordgo.ApplicationCommandOption{
@@ -220,6 +232,30 @@ var (
 					Content: content,
 					Embeds:  embeds,
 					Flags:   1 << 6,
+				},
+			})
+		},
+		"roles": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			var content string
+			var embed *discordgo.MessageEmbed
+			var embeds []*discordgo.MessageEmbed
+			var args []string
+			options := i.ApplicationCommandData().Options
+			for _, v := range options {
+				args = append(args, v.Value.(string))
+			}
+			do := cmdRoles(s, "", i.Member.User.ID, args)
+			if do.Embeds {
+				embed = do.Embed()
+				embeds = append(embeds, embed)
+			} else {
+				content = do.Text()
+			}
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: content,
+					Embeds:  embeds,
 				},
 			})
 		},
