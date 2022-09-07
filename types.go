@@ -140,7 +140,7 @@ type Score struct {
 // Type that represents a list of scores.
 // This type is needed so that we can sort the score by points (value).
 // Internally score is a map[string]int, but fmt only sorts maps by key.
-// We use sort.Sort() in cmdQuiz which requires ScoreList to implement the sort interface.
+// To use sort.Sort(), ScoreList must implement the sort interface.
 type ScoreList []Score
 
 func (s ScoreList) Len() int {
