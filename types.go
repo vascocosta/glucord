@@ -130,3 +130,27 @@ func (do *DiscordOutput) Text() (text string) {
 	text = fmt.Sprintf("\n%s", do.Description)
 	return
 }
+
+// Type that represents a score that can be sorted by points.
+type Score struct {
+	Key    string
+	Points int
+}
+
+// Type that represents a list of scores.
+// This type is needed so that we can sort the score by points (value).
+// Internally score is a map[string]int, but fmt only sorts maps by key.
+// We use sort.Sort() in cmdQuiz which requires ScoreList to implement the sort interface.
+type ScoreList []Score
+
+func (s ScoreList) Len() int {
+	return len(s)
+}
+
+func (s ScoreList) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
+}
+
+func (s ScoreList) Less(i, j int) bool {
+	return s[i].Points < s[j].Points
+}

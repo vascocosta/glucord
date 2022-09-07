@@ -25,6 +25,7 @@ import (
 	"math/rand"
 	"os"
 	"os/exec"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -83,6 +84,54 @@ var (
 					Type:        discordgo.ApplicationCommandOptionString,
 					Name:        "target",
 					Description: "Who to ping.",
+					Required:    false,
+				},
+			},
+		},
+		{
+			Name:        "poll",
+			Description: "Make a channel poll.",
+			Options: []*discordgo.ApplicationCommandOption{
+				{
+					Type:        discordgo.ApplicationCommandOptionString,
+					Name:        "question",
+					Description: "What to ask on this poll.",
+					Required:    true,
+				},
+				{
+					Type:        discordgo.ApplicationCommandOptionString,
+					Name:        "option_1",
+					Description: "First option.",
+					Required:    true,
+				},
+				{
+					Type:        discordgo.ApplicationCommandOptionString,
+					Name:        "option_2",
+					Description: "Second option.",
+					Required:    true,
+				},
+				{
+					Type:        discordgo.ApplicationCommandOptionString,
+					Name:        "option_3",
+					Description: "Second option.",
+					Required:    false,
+				},
+				{
+					Type:        discordgo.ApplicationCommandOptionString,
+					Name:        "option_4",
+					Description: "Second option.",
+					Required:    false,
+				},
+				{
+					Type:        discordgo.ApplicationCommandOptionString,
+					Name:        "option_5",
+					Description: "Second option.",
+					Required:    false,
+				},
+				{
+					Type:        discordgo.ApplicationCommandOptionString,
+					Name:        "option_6",
+					Description: "Second option.",
 					Required:    false,
 				},
 			},
@@ -214,6 +263,64 @@ var (
 					Embeds:  embeds,
 				},
 			})
+		},
+		"poll": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			var content string
+			var embed *discordgo.MessageEmbed
+			var embeds []*discordgo.MessageEmbed
+			var args []string
+			options := i.ApplicationCommandData().Options
+			for _, v := range options {
+				args = append(args, v.Value.(string))
+			}
+			do := cmdPoll(s, "", i.Member.User.ID, args)
+			if do.Embeds {
+				embed = do.Embed()
+				embeds = append(embeds, embed)
+			} else {
+				content = do.Text()
+			}
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: content,
+					Embeds:  embeds,
+				},
+			})
+			channel, _ := s.Channel(i.ChannelID)
+			pollMessageID := channel.LastMessageID
+			optionsUnicode := []string{"🇦", "🇧", "🇨", "🇩", "🇪", "🇫"}
+			for i := 0; i != len(options)-1; i++ {
+				s.MessageReactionAdd(channel.ID, pollMessageID, optionsUnicode[i])
+			}
+			go func() {
+				time.Sleep(5 * time.Minute)
+				results := make(map[string]int)
+				for i, v := range optionsUnicode {
+					users, err := s.MessageReactions(channel.ID, pollMessageID, v, 0, "", "")
+					if err != nil {
+						log.Println(err)
+					}
+					if len(users) > 0 {
+						results[fmt.Sprintf("%s - %s", v, args[i+1])] = len(users) - 1
+					}
+				}
+				scoreList := make(ScoreList, len(results))
+				i := 0
+				for k, v := range results {
+					scoreList[i] = Score{k, v}
+					i++
+				}
+				sort.Sort(sort.Reverse(scoreList))
+				s.ChannelMessageSend(channel.ID, "The poll has ended, here are the results:\n")
+				for _, v := range scoreList {
+					s.ChannelMessageSend(channel.ID, fmt.Sprintf("%s: %d votes\n", v.Key, v.Points))
+				}
+				err := s.MessageReactionsRemoveAll(channel.ID, pollMessageID)
+				if err != nil {
+					log.Println(err)
+				}
+			}()
 		},
 		"register": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 			var content string
@@ -624,6 +731,45 @@ func cmdPlugin(name string, dg *discordgo.Session, channel string, user string, 
 		// If the main thread doesn't read the channel, then timeout after 1 second.
 	}
 	do.Send(channel)
+}
+
+// The poll command receives a Discord session pointer, a channel, a user and an arguments slice of strings.
+// It then makes a poll on a Discord channel using the poll question and all the possible answer options.
+// It then waits for votes from the users and finally displays the results of the poll after a timeout.
+func cmdPoll(dg *discordgo.Session, channel string, user string, args []string) (do *DiscordOutput) {
+	do = NewDiscordOutput(dg, 0xb40000, "POLL (5 min)", "")
+	users, err := readCSV(usersFile)
+	if err != nil {
+		do.Description = ":warning: Error getting users."
+		do.Send(channel)
+		log.Println("cmdPoll:", err)
+		return
+	}
+	for _, u := range users {
+		if strings.EqualFold(u[0], user) {
+			if strings.Contains(strings.ToLower(u[2]), "embeds") {
+				do.Embeds = true
+			}
+		}
+	}
+	optionsUnicode := []string{"🇦", "🇧", "🇨", "🇩", "🇪", "🇫"}
+	optionsValue := ""
+	for i := 1; i != len(args); i++ {
+		optionsValue += fmt.Sprintf("%s - %s\n", optionsUnicode[i-1], args[i])
+	}
+	fields := []map[string]string{}
+	question := map[string]string{
+		"Name":  "Question:",
+		"Value": args[0],
+	}
+	options := map[string]string{
+		"Name":  "Answers:",
+		"Value": optionsValue,
+	}
+	fields = append(fields, question, options)
+	do.Fields = &fields
+	do.Color = 0x3f82ef
+	return
 }
 
 // The quote command receives a Discord session pointer, a channel and an arguments slice of strings.
