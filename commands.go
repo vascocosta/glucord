@@ -490,6 +490,194 @@ func cmdAsk(dg *discordgo.Session, channel string, user string, args []string) (
 	return
 }
 
+// The bet command receives a Discord session pointer, a channel, a user and a bet containing 3 drivers.
+// It then stores the bet provided by the user, or lets the user know his current bet for the next race.
+func cmdBet(dg *discordgo.Session, channel string, user string, bet []string) (do *DiscordOutput) {
+	var correct int
+	var bets [][]string
+	var update bool
+	do = NewDiscordOutput(dg, 0xb40000, "BET", "")
+	users, err := readCSV(usersFile)
+	if err != nil {
+		do.Description = ":warning: Error getting users."
+		log.Println("cmdAsk:", err)
+		return
+	}
+	for _, u := range users {
+		if strings.EqualFold(u[0], user) {
+			if strings.Contains(strings.ToLower(u[2]), "embeds") {
+				do.Embeds = true
+			}
+		}
+	}
+	users, err = readCSV(betFile)
+	if err != nil {
+		do.Description = ":warning: Error getting users."
+		log.Println("cmdBet:", err)
+		return
+	}
+	if !isUser(user, users) {
+		users = append(users, []string{strings.ToLower(user), "Europe/Berlin", ""})
+		err = writeCSV(betFile, users)
+		if err != nil {
+			do.Description = ":warning: Error registering user to the bet command."
+			log.Println("cmdBet:", err)
+			return
+		}
+	}
+	event, err := findNext("[formula 1]", "race")
+	if err != nil {
+		do.Description = ":warning: Bets are closed."
+		log.Println("cmdBet:", err)
+		return
+	}
+	bets, err = readCSV(betsFile)
+	if err != nil {
+		do.Description = ":warning: Error getting bets."
+		log.Println("cmdBet:", err)
+		return
+	}
+	// If no bet is provided as argument, we simply show the user's current bet, if he's placed one.
+	if len(bet) == 0 {
+		for i := len(bets) - 1; i >= 0; i-- {
+			if strings.ToLower(bets[i][0]) == strings.ToLower(event[1]) && strings.ToLower(bets[i][1]) == strings.ToLower(user) {
+				first := strings.ToUpper(bets[i][2])
+				second := strings.ToUpper(bets[i][3])
+				third := strings.ToUpper(bets[i][4])
+				do.Description = fmt.Sprintf("Your current bet for the %s: %s %s %s", event[1], first, second, third)
+				return
+			}
+		}
+		do.Description = fmt.Sprintf("You haven't placed a bet for the %s yet.\nUse !bet log to check older bets.", event[1])
+		return
+	}
+	drivers, err := readCSV(driversFile)
+	if err != nil {
+		do.Description = ":warning: Error getting drivers."
+		log.Println("cmdBet:", err)
+		return
+	}
+	// If instead of a normal bet the user provides a single word, we interpret it as an argument.
+	// There are multiple arguments, for which we show the driver odds or a log of the user's bets.
+	// Other possible argument is the nick of a registered user, for which we show that user's bet.
+	// Alternatively, if the argument provided isn't a valid command option, we let the user know.
+	if len(bet) == 1 {
+		switch strings.ToLower(bet[0]) {
+		case "multipliers", "odds":
+			var output string
+			odds, err := toStringMap(drivers, 1, 2)
+			if err != nil {
+				do.Description = ":warning: Error getting odds."
+				log.Println("cmdBet:", err)
+				return
+			}
+			scoreList := make(ScoreList, len(drivers))
+			i := 0
+			for k, v := range odds {
+				integerOdds, err := strconv.Atoi(v)
+				if err != nil {
+					do.Description = ":warning: Error getting odds."
+					log.Println("cmdBet:", err)
+					return
+				}
+				scoreList[i] = Score{k, integerOdds}
+				i++
+			}
+			sort.Sort(scoreList)
+			for _, v := range scoreList {
+				output += fmt.Sprintf("%s %d\n", strings.ToUpper(v.Key), v.Points)
+			}
+			if len(output) > 3 {
+				do.Description = output
+			}
+		case "log":
+			var betsFound bool
+			var counter int
+			for i := len(bets) - 1; i >= 0 && counter < 3; i-- {
+				if strings.ToLower(bets[i][1]) == strings.ToLower(user) {
+					betsFound = true
+					do.Description =
+						fmt.Sprintf("Your bet for the %s: %s %s %s %s points.",
+							bets[i][0],
+							strings.ToUpper(bets[i][2]),
+							strings.ToUpper(bets[i][3]),
+							strings.ToUpper(bets[i][4]),
+							bets[i][5])
+					counter += 1
+				}
+			}
+			if !betsFound {
+				do.Description = ":warning: No recent bets from you."
+			}
+		case "points":
+			scoreList := make(ScoreList, len(users))
+			for _, user := range users {
+				points, _ := strconv.Atoi(user[2])
+				if points > 0 {
+					member, err := dg.GuildMember(guild, user[0])
+					if err != nil {
+						log.Println("cmdBet:", err)
+						continue
+					}
+					scoreList = append(scoreList, Score{member.User.Username, points})
+				}
+			}
+			sort.Sort(sort.Reverse(scoreList))
+			output := ""
+			for i, score := range scoreList {
+				if score.Points > 0 {
+					output += fmt.Sprintf("%d. %s %d\n", i+1, score.Key, score.Points)
+				}
+			}
+			if len(output) > 3 {
+				do.Description = output
+			}
+		default:
+			do.Description = ":warning: Unknown command option."
+		}
+		return
+	}
+	if len(bet) != 3 {
+		do.Description = ":warning: The bet must contain 3 drivers."
+		return
+	}
+	// Finally, if we reach this point, it means the user has provided a valid bet composed of 3 drivers.
+	// We verify that all 3 driver codes are valid as per the drivers CSV file before we go any further.
+	// If the 3 codes are valid, we either place a new bet or update an already placed bet for the race.
+	first := strings.ToLower(bet[0])
+	second := strings.ToLower(bet[1])
+	third := strings.ToLower(bet[2])
+	for _, driver := range drivers {
+		code := strings.ToLower(driver[1])
+		if code == first || code == second || code == third {
+			correct++
+		}
+	}
+	if correct != 3 {
+		do.Description = ":warning: Invalid drivers."
+		return
+	}
+	for i := 0; i < len(bets); i++ {
+		if strings.ToLower(bets[i][0]) == strings.ToLower(event[1]) && strings.ToLower(bets[i][1]) == strings.ToLower(user) {
+			update = true
+			bets[i] = []string{event[1], strings.ToLower(user), first, second, third, "0"}
+			break
+		}
+	}
+	if !update {
+		bets = append(bets, []string{event[1], strings.ToLower(user), first, second, third, "0"})
+	}
+	err = writeCSV(betsFile, bets)
+	if err != nil {
+		do.Description = ":warning: Error updating bet."
+		log.Println("cmdBet:", err)
+		return
+	}
+	do.Color = 0x3f82ef
+	do.Description = "Your bet for the " + event[1] + " was successfully updated."
+	return
+}
+
 // The help command receives a Discord session pointer, a channel and a search string.
 // It then shows a compact help message listing all the possible commands of the bot.
 func cmdHelp(dg *discordgo.Session, channel string, user string, search string) (do *DiscordOutput) {
@@ -769,6 +957,165 @@ func cmdPoll(dg *discordgo.Session, channel string, user string, args []string) 
 	fields = append(fields, question, options)
 	do.Fields = &fields
 	do.Color = 0x3f82ef
+	return
+}
+
+// The processbets command receives a Discord session pointer, a channel and a nick.
+// It then processes the placed bets, according to the results in the results file.
+func cmdProcessBets(dg *discordgo.Session, channel string, user string) (do *DiscordOutput) {
+	do = NewDiscordOutput(dg, 0xb40000, "PROCESSBETS", "")
+	users, err := readCSV(usersFile)
+	if err != nil {
+		do.Description = ":warning: Error getting users."
+		log.Println("cmdHelp:", err)
+		return
+	}
+	for _, u := range users {
+		if strings.EqualFold(u[0], user) {
+			if strings.Contains(strings.ToLower(u[2]), "embeds") {
+				do.Embeds = true
+			}
+		}
+	}
+	if strings.ToLower(user) != strings.ToLower("541209780929167400") {
+		do.Description = ":warning: Only gluon can use this command."
+		return
+	}
+	users, err = readCSV(betFile)
+	if err != nil {
+		do.Description = ":warning: Error getting users."
+		log.Println("cmdProcessBets:", err)
+		return
+	}
+	results, err := readCSV(resultsFile)
+	if err != nil {
+		do.Description = ":warning: Error getting results."
+		log.Println("cmdProcessBets:", err)
+		return
+	}
+	if results[0][0] == results[0][4] {
+		do.Description = ":warning: " + results[0][0] + " bets have already been processed in the past."
+		return
+	}
+	bets, err := readCSV(betsFile)
+	if err != nil {
+		do.Description = ":warning: Error getting bets."
+		log.Println("cmdProcessBets:", err)
+		return
+	}
+	users, err = readCSV(betFile)
+	if err != nil {
+		do.Description = ":warning: Error getting users."
+		log.Println("cmdProcessBets:", err)
+		return
+	}
+	drivers, err := readCSV(driversFile)
+	if err != nil {
+		do.Description = ":warning: Error getting drivers."
+		log.Println("cmdProcessBets:", err)
+		return
+	}
+	odds, err := toStringMap(drivers, 1, 2)
+	if err != nil {
+		do.Description = ":warning: Error getting odds."
+		log.Println("cmdProcessBets:", err)
+		return
+	}
+	// This is the main loop where we go through each bet placed by the user and process it.
+	// If the race on the bet matches the race on the results file, we calculate its score.
+	for i, bet := range bets {
+		score := 0
+		first := strings.ToLower(results[0][1])
+		second := strings.ToLower(results[0][2])
+		third := strings.ToLower(results[0][3])
+		if strings.ToLower(bet[0]) == strings.ToLower(results[0][0]) {
+			// If the first driver is on the podium, we have two different possibilities.
+			// If the first driver is the first on the results, we score 10 * multiplier.
+			// If the first driver is not the first on the results, we score 5 * multiplier.
+			if contains([]string{first, second, third}, strings.ToLower(bet[2])) {
+				multiplier, err := strconv.Atoi(odds[bet[2]])
+				if err != nil {
+					do.Description = ":warning: Error applying multiplier."
+					log.Println("cmdProcessBets:", err)
+					return
+				}
+				if strings.ToLower(bet[2]) == strings.ToLower(results[0][1]) {
+					score += (10 * multiplier)
+				} else {
+					score += (5 * multiplier)
+				}
+			}
+			// If the second driver is on the podium, we have two different possibilities.
+			// If the second driver is the second on the results, we score 10 * multiplier.
+			// If the second driver is not the second on the results, we score 5 * multiplier.
+			if contains([]string{first, second, third}, strings.ToLower(bet[3])) {
+				multiplier, err := strconv.Atoi(odds[bet[3]])
+				if err != nil {
+					do.Description = ":warning: Error applying multiplier."
+					log.Println("cmdProcessBets:", err)
+					return
+				}
+				if strings.ToLower(bet[3]) == strings.ToLower(results[0][2]) {
+					score += (10 * multiplier)
+				} else {
+					score += (5 * multiplier)
+				}
+			}
+			// If the third driver is on the podium, we have two different possibilities.
+			// If the third driver is the third on the results, we score 10 * multiplier.
+			// If the third driver is not the third on the results, we score 5 * multiplier.
+			if contains([]string{first, second, third}, strings.ToLower(bet[4])) {
+				multiplier, err := strconv.Atoi(odds[bet[4]])
+				if err != nil {
+					do.Description = ":warning: Error applying multiplier."
+					log.Println("cmdProcessBets:", err)
+					return
+				}
+				if strings.ToLower(bet[4]) == strings.ToLower(results[0][3]) {
+					score += (10 * multiplier)
+				} else {
+					score += (5 * multiplier)
+				}
+			}
+			bets[i][5] = strconv.Itoa(score)
+			// Update the total number of points for each driver on the users file.
+			// The code above only handles points for each bet, not for each user.
+			for j, user := range users {
+				if strings.ToLower(user[0]) == strings.ToLower(bet[1]) {
+					currentScore, err := strconv.Atoi(users[j][2])
+					if err != nil {
+						do.Description = ":warning: Error getting current score."
+						log.Println("cmdProcessBets:", err)
+						return
+					}
+					users[j][2] = strconv.Itoa(currentScore + score)
+				}
+			}
+		}
+		err = writeCSV(betFile, users)
+		if err != nil {
+			do.Description = ":warning: Error storing user points."
+			log.Println("cmdProcessBets:", err)
+			return
+		}
+	}
+	// Finally update the bets file with the points for each bet for the current race.
+	// The results file is updated so that the last field is set to the current race.
+	err = writeCSV(betsFile, bets)
+	if err != nil {
+		do.Description = ":warning: Error storing bet points."
+		log.Println("cmdProcessBets:", err)
+		return
+	}
+	results[0][4] = results[0][0]
+	err = writeCSV(resultsFile, results)
+	if err != nil {
+		do.Description = ":warning: Error storing last processed bet.."
+		log.Println("cmdProcessBets:", err)
+		return
+	}
+	do.Color = 0x3f82ef
+	do.Description = results[0][0] + " bets successfully processed."
 	return
 }
 

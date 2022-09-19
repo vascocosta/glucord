@@ -41,12 +41,16 @@ var (
 const (
 	aliasFile     = "alias.csv"   // Full path to the alias file.
 	answersFile   = "answers.csv" // Full path to the answers file.
+	betFile       = "bet.csv"     // Full path to the bet file.
+	betsFile      = "bets.csv"    // Full path to the bets file.
 	configFile    = "config.csv"  // Full path to the config file.
+	driversFile   = "drivers.csv" // Full path to the drivers file.
 	eventsFile    = "events.csv"  // Full path to the events file.
 	feedsFile     = "feeds.csv"   // Full path to the feeds file.
 	inputFile     = "input.txt"   // Full path to the input file.
 	pluginsFolder = "./plugins/"  // Full path to the plugins folder.
 	quotesFile    = "quotes.csv"  // Full path to the quotes file.
+	resultsFile   = "results.csv" // Full path to the results file.
 	rolesFile     = "roles.csv"   // Full path to the roles file.
 	statsFile     = "stats.csv"   // Full path to the stats file.
 	usageFile     = "usage.csv"   // Full path to the usage file.
@@ -72,12 +76,16 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		switch strings.ToLower(command.Name) {
 		case "a", "ask":
 			do = cmdAsk(s, command.Channel, command.User, command.Args)
+		case "b", "bet":
+			do = cmdBet(s, command.Channel, command.User, command.Args)
 		case "h", "help", "commands":
 			do = cmdHelp(s, command.Channel, command.User, strings.Join(command.Args, ""))
 		case "n", "next":
 			do = cmdNext(s, command.Channel, command.User, strings.Join(command.Args, " "))
 		case "p", "ping":
 			do = cmdPing(s, command.Channel, command.User, command.Args)
+		case "pb", "processbets":
+			do = cmdProcessBets(s, command.Channel, command.User)
 		case "q", "quote":
 			do = cmdQuote(s, command.Channel, command.User, command.Args)
 		case "r", "register":
