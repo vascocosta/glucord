@@ -39,24 +39,25 @@ var (
 )
 
 const (
-	aliasFile     = "alias.csv"   // Full path to the alias file.
-	answersFile   = "answers.csv" // Full path to the answers file.
-	betFile       = "bet.csv"     // Full path to the bet file.
-	betsFile      = "bets.csv"    // Full path to the bets file.
-	configFile    = "config.csv"  // Full path to the config file.
-	driversFile   = "drivers.csv" // Full path to the drivers file.
-	eventsFile    = "events.csv"  // Full path to the events file.
-	feedsFile     = "feeds.csv"   // Full path to the feeds file.
-	inputFile     = "input.txt"   // Full path to the input file.
-	pluginsFolder = "./plugins/"  // Full path to the plugins folder.
-	quotesFile    = "quotes.csv"  // Full path to the quotes file.
-	resultsFile   = "results.csv" // Full path to the results file.
-	rolesFile     = "roles.csv"   // Full path to the roles file.
-	statsFile     = "stats.csv"   // Full path to the stats file.
-	usageFile     = "usage.csv"   // Full path to the usage file.
-	usersFile     = "users.csv"   // Full path to the users file.
-	weatherFile   = "weather.csv" // Full path to the weather file.
-	hns           = 3600000000000 // Number of nanoseconds in one hour.
+	aliasFile     = "alias.csv"    // Full path to the alias file.
+	answersFile   = "answers.csv"  // Full path to the answers file.
+	betFile       = "bet.csv"      // Full path to the bet file.
+	betsFile      = "bets.csv"     // Full path to the bets file.
+	disabledFile  = "disabled.csv" // Full path to the disabled file.
+	configFile    = "config.csv"   // Full path to the config file.
+	driversFile   = "drivers.csv"  // Full path to the drivers file.
+	eventsFile    = "events.csv"   // Full path to the events file.
+	feedsFile     = "feeds.csv"    // Full path to the feeds file.
+	inputFile     = "input.txt"    // Full path to the input file.
+	pluginsFolder = "./plugins/"   // Full path to the plugins folder.
+	quotesFile    = "quotes.csv"   // Full path to the quotes file.
+	resultsFile   = "results.csv"  // Full path to the results file.
+	rolesFile     = "roles.csv"    // Full path to the roles file.
+	statsFile     = "stats.csv"    // Full path to the stats file.
+	usageFile     = "usage.csv"    // Full path to the usage file.
+	usersFile     = "users.csv"    // Full path to the users file.
+	weatherFile   = "weather.csv"  // Full path to the weather file.
+	hns           = 3600000000000  // Number of nanoseconds in one hour.
 )
 
 // Message callback function that receives a Discord session pointer and a message pointer.
@@ -72,6 +73,16 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	} else {
 		// Pick the corresponding function for each supported command and store its output.
 		// If the command is not built-in, run it as a plugin inside a dedicated goroutine.
+		disabled, err := readCSV(disabledFile)
+		if err != nil {
+			log.Println("main:", err)
+		}
+		for _, v := range disabled {
+			if strings.EqualFold(v[0], command.Name) {
+				s.ChannelMessageSend(command.Channel, ":warning: Unkown command or plugin.")
+				return
+			}
+		}
 		var do *DiscordOutput
 		switch strings.ToLower(command.Name) {
 		case "a", "ask":
