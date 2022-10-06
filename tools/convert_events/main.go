@@ -82,6 +82,16 @@ func main() {
 			Comparator: series.Eq,
 			Comparando: "[Space]",
 		},
+		dataframe.F{
+			Colname:    "Category",
+			Comparator: series.Eq,
+			Comparando: "[SpaceX]",
+		},
+		dataframe.F{
+			Colname:    "Category",
+			Comparator: series.Eq,
+			Comparando: "[NASA]",
+		},
 	)
 	rows = geeks.Nrow()
 	for i := 0; i != rows; i++ {
